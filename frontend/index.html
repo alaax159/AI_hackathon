@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Legal Aid — Palestine</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2028;
+      --ink: #e6eaf0;
+      --muted: #8a94a6;
+      --accent: #6ee7b7;
+      --accent-dark: #34d399;
+      --danger: #f87171;
+      --border: #2c3642;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+    header .sub { color: var(--muted); font-size: 13px; }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      background: #0c1117;
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: vertical;
+    }
+    button {
+      background: var(--accent);
+      color: #0c1117;
+      border: 0;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover { background: var(--accent-dark); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+    button.record { background: var(--danger); color: white; }
+    button.record.on { background: #dc2626; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+    select, input[type="text"] {
+      background: #0c1117;
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .answer {
+      background: #0c1117;
+      padding: 16px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .answer.rtl { direction: rtl; text-align: right; }
+    .sources { margin-top: 12px; }
+    .source {
+      background: #0c1117;
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      margin: 8px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .source strong { color: var(--ink); display: block; margin-bottom: 4px; }
+    .clinic {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .clinic .name { font-weight: 600; }
+    .clinic .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .tag {
+      display: inline-block;
+      background: var(--border);
+      color: var(--ink);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin: 0 4px 2px 0;
+    }
+    h2 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 8px; }
+    .status { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .example {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .example:hover { color: var(--ink); border-color: var(--accent); }
+    .disclaimer {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>AI Legal Aid — Palestine</h1>
+      <div class="sub">Palestinian Basic Law (2003, amended 2005)</div>
+    </div>
+    <div class="row">
+      <label for="lang" class="sub">Language</label>
+      <select id="lang">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <label for="question" class="sub">Describe your legal problem</label>
+      <textarea id="question" placeholder="e.g. My landlord verbally told me I have 3 days to leave. What are my rights?"></textarea>
+      <div class="row" style="margin-top: 10px;">
+        <button id="ask">Get legal guidance</button>
+        <button id="record" class="record">🎙️ Record</button>
+        <span id="status" class="status"></span>
+      </div>
+      <div class="examples" id="examples"></div>
+    </div>
+
+    <div id="results" style="display:none;">
+      <h2>Answer</h2>
+      <div class="card">
+        <div id="intent" class="status"></div>
+        <div id="answer" class="answer"></div>
+      </div>
+
+      <h2>Legal basis</h2>
+      <div id="sources" class="sources"></div>
+
+      <h2>Nearby legal aid</h2>
+      <div id="clinics"></div>
+    </div>
+
+    <div class="disclaimer">
+      This is general legal information — not legal advice. For any specific situation,
+      consult a licensed Palestinian lawyer or visit a legal aid center.
+    </div>
+  </main>
+
+  <script>
+    const EXAMPLES = {
+      en: [
+        "My landlord verbally told me I have 3 days to leave. What are my rights?",
+        "The police arrested my brother without a warrant. What can I do?",
+        "My employer fired me without notice — what are my labor rights?",
+        "Can the government take my land? What compensation am I owed?",
+      ],
+      ar: [
+        "أخبرني صاحب البيت شفهياً أن عليّ المغادرة خلال 3 أيام. ما هي حقوقي؟",
+        "اعتقلت الشرطة أخي بدون مذكرة. ماذا أفعل؟",
+        "فصلني صاحب العمل دون إشعار — ما هي حقوقي في العمل؟",
+      ],
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const langSel = $("lang");
+
+    function renderExamples() {
+      const lang = langSel.value;
+      const host = $("examples");
+      host.innerHTML = "";
+      for (const ex of EXAMPLES[lang]) {
+        const b = document.createElement("button");
+        b.className = "example";
+        b.textContent = ex;
+        b.onclick = () => { $("question").value = ex; };
+        host.appendChild(b);
+      }
+    }
+
+    langSel.onchange = renderExamples;
+    renderExamples();
+
+    async function ask() {
+      const q = $("question").value.trim();
+      if (!q) return;
+      statusEl.textContent = "thinking…";
+      $("ask").disabled = true;
+      try {
+        const resp = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q, language: langSel.value, top_k: 3 }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        renderResults(data);
+        statusEl.textContent = "";
+      } catch (err) {
+        statusEl.textContent = "error: " + err.message;
+      } finally {
+        $("ask").disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      $("results").style.display = "block";
+      const answerEl = $("answer");
+      answerEl.textContent = data.answer;
+      answerEl.className = "answer" + (langSel.value === "ar" ? " rtl" : "");
+
+      const i = data.intent || {};
+      $("intent").textContent = `Intent: ${i.label || "general"} (confidence ${(i.confidence ?? 0).toFixed(2)})`;
+
+      const sourcesEl = $("sources");
+      sourcesEl.innerHTML = "";
+      for (const s of data.sources || []) {
+        const d = document.createElement("div");
+        d.className = "source";
+        d.innerHTML = `<strong>${escapeHtml(s.article || "")} — ${escapeHtml(s.title || "")}</strong>${escapeHtml(s.text || "")}`;
+        sourcesEl.appendChild(d);
+      }
+
+      const clinicsEl = $("clinics");
+      clinicsEl.innerHTML = "";
+      for (const c of data.clinics || []) {
+        const d = document.createElement("div");
+        d.className = "clinic";
+        const tags = (c.specialties || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+        d.innerHTML = `
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="meta">${escapeHtml(c.city)}, ${escapeHtml(c.region)} • ${escapeHtml(c.phone)} • ${escapeHtml(c.email)}</div>
+          <div style="margin-top:6px;">${tags}</div>
+        `;
+        clinicsEl.appendChild(d);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    $("ask").onclick = ask;
+    $("question").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) ask();
+    });
+
+    // ---- Voice recording ----
+    let mediaRecorder = null;
+    let chunks = [];
+    const recBtn = $("record");
+
+    recBtn.onclick = async () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        recBtn.classList.remove("on");
+        recBtn.textContent = "🎙️ Record";
+        return;
+      }
+      if (!navigator.mediaDevices) {
+        statusEl.textContent = "audio not supported in this browser";
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(chunks, { type: "audio/webm" });
+          statusEl.textContent = "transcribing…";
+          const fd = new FormData();
+          fd.append("audio", blob, "speech.webm");
+          fd.append("language", langSel.value);
+          try {
+            const r = await fetch("/transcribe", { method: "POST", body: fd });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const data = await r.json();
+            $("question").value = data.text || "";
+            statusEl.textContent = `transcribed (${data.language || "?"})`;
+          } catch (err) {
+            statusEl.textContent = "transcription error: " + err.message;
+          }
+        };
+        mediaRecorder.start();
+        recBtn.classList.add("on");
+        recBtn.textContent = "⏹ Stop";
+        statusEl.textContent = "recording…";
+      } catch (err) {
+        statusEl.textContent = "mic error: " + err.message;
+      }
+    };
+  </script>
+</body>
+</html>

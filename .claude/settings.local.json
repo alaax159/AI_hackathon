@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pipeline.palestine_law_pipeline)",
+      "Bash(python *)"
+    ]
+  }
+}
