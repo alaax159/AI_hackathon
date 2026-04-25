@@ -23,8 +23,13 @@ INTENTS: dict[str, list[str]] = {
         "طلاق", "حضانة", "زواج", "نفقة", "ميراث",
     ],
     "criminal": [
-        "arrest", "detain", "police", "torture", "charge", "lawyer", "court",
-        "اعتقال", "احتجاز", "شرطة", "تعذيب", "تهمة", "محامي", "محكمة",
+        # Basic Law + Penal Procedure Law No. 3/2001 keywords
+        "arrest", "detain", "detained", "detention", "police", "torture", "charge", "charged",
+        "lawyer", "counsel", "court", "warrant", "bail", "custody", "interrogat", "confession",
+        "flagrant", "prosecution", "misdemean", "felony", "prison", "silent", "silence",
+        "اعتقال", "احتجاز", "شرطة", "تعذيب", "تهمة", "محامٍ", "محامي", "محكمة",
+        "مذكرة", "كفالة", "نيابة", "استجواب", "اعتراف", "صمت", "سجن", "جناية", "جنحة",
+        "نيابة عامة", "قاضي صلح", "المتهم",
     ],
     "property": [
         "property", "land", "confiscate", "expropriate", "compensation",

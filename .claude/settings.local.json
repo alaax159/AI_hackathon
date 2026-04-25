@@ -3,7 +3,11 @@
     "allow": [
       "Bash(python -m pipeline.palestine_law_pipeline)",
       "Bash(python *)",
-      "Bash(command -v ffmpeg)"
+      "Bash(command -v ffmpeg)",
+      "WebSearch",
+      "WebFetch(domain:menarights.org)",
+      "WebFetch(domain:www.dcaf.ch)",
+      "WebFetch(domain:security-legislation.ps)"
     ]
   }
 }
