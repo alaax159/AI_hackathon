@@ -12,7 +12,9 @@ from pydantic import BaseModel, Field
 
 from app import intent as intent_mod
 from app import referral
+from app import triage as triage_mod
 from app.form_filler import available_forms, generate_pdf
+from model.inference import _detect_language as detect_language
 from model.inference import answer as llm_answer
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +42,9 @@ class AskResponse(BaseModel):
     intent: dict
     sources: list[dict]
     clinics: list[dict]
+    triage: dict
+    action_plan: list[dict]
+    language: str
 
 
 class FormRequest(BaseModel):
@@ -55,9 +60,12 @@ def health() -> dict:
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest) -> AskResponse:
     lang = None if req.language == "auto" else req.language
+    resolved_lang = detect_language(req.question, hint=lang)
     result = llm_answer(req.question, language=lang, top_k=req.top_k)
     detected = intent_mod.classify(req.question)
     clinics = referral.find_clinics(intent=detected.label, limit=3)
+    tr = triage_mod.assess(req.question, detected.label, language=resolved_lang)
+    plan = triage_mod.action_plan(detected.label, language=resolved_lang)
     return AskResponse(
         answer=result["answer"],
         intent={
@@ -70,6 +78,14 @@ def ask(req: AskRequest) -> AskResponse:
             for s in result["sources"]
         ],
         clinics=clinics,
+        triage={
+            "level": tr.level,
+            "color": tr.color,
+            "label": tr.label,
+            "deadline_hint": tr.deadline_hint,
+        },
+        action_plan=plan,
+        language=resolved_lang,
     )
 
 
@@ -120,6 +136,21 @@ def clinics_endpoint(
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+
+@app.get("/sw.js")
+def service_worker() -> FileResponse:
+    """Serve the service worker at the root so its scope covers the whole site."""
+    return FileResponse(
+        FRONTEND_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/manifest.json")
+def manifest() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "manifest.json", media_type="application/manifest+json")
 
 
 @app.get("/", response_class=HTMLResponse)

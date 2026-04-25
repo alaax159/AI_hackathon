@@ -20,14 +20,27 @@ Speed notes
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import textwrap
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from model.rag import retrieve
+
+_AR_ARTICLES_PATH = Path(__file__).resolve().parents[1] / "data" / "processed" / "articles_ar.json"
+
+
+@lru_cache(maxsize=1)
+def _articles_ar() -> dict[str, str]:
+    """Map of article ID -> plain-Arabic summary, loaded once."""
+    try:
+        return json.loads(_AR_ARTICLES_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 SYSTEM_PROMPT_EN = textwrap.dedent(
     """\
@@ -225,8 +238,25 @@ def build_prompt(question: str, chunks: list[dict], language: str = "en") -> str
     return f"[INST] <<SYS>>\n{system}\n<</SYS>>\n\n{user}\n[/INST]\n"
 
 
+_AR_ARTICLE_LABELS = {
+    str(n): f"المادة {n}" for n in list(range(1, 34)) + [97, 98, 101, 102, 110, 111, 112, 113]
+}
+
+
+def _ar_article_label(article_en: str) -> str:
+    """Turn 'Article 11' -> 'المادة 11'. Falls back to the original string."""
+    m = re.search(r"(\d+)", article_en or "")
+    if m:
+        return f"المادة {m.group(1)}"
+    return article_en or "المادة"
+
+
 def _fallback_answer(question: str, chunks: list[dict], language: str = "en") -> str:
-    """If no LLM is available, stitch together the top retrieved articles."""
+    """If no LLM is available, stitch together the top retrieved articles.
+
+    For Arabic we substitute plain-Arabic summaries (data/processed/articles_ar.json)
+    so the answer body is genuinely in Arabic — TTS then reads it correctly.
+    """
     disclaimer = DISCLAIMER_AR if language == "ar" else DISCLAIMER_EN
     if not chunks:
         if language == "ar":
@@ -238,10 +268,24 @@ def _fallback_answer(question: str, chunks: list[dict], language: str = "en") ->
             "I could not find a relevant provision of the Palestinian Basic Law for your "
             f"question: {question!r}. {disclaimer}"
         )
+
     if language == "ar":
+        ar_map = _articles_ar()
         lines = ["استناداً إلى القانون الأساسي الفلسطيني (2003، المعدل 2005)، تنطبق الأحكام التالية:"]
-    else:
-        lines = ["Based on the Palestinian Basic Law (2003, amended 2005), the following provisions apply:"]
+        for c in chunks:
+            article_en = c["metadata"].get("article", "")
+            ar_label = _ar_article_label(article_en)
+            ar_text = ar_map.get(article_en)
+            if ar_text:
+                lines.append(f"- {ar_label}: {ar_text}")
+            else:
+                # Last-resort: keep the English text but flag it so it is obvious
+                # in the UI that an AR translation was not available.
+                lines.append(f"- {ar_label} (نص بالإنجليزية): {c['text']}")
+        lines.append(disclaimer)
+        return "\n\n".join(lines)
+
+    lines = ["Based on the Palestinian Basic Law (2003, amended 2005), the following provisions apply:"]
     for c in chunks:
         article = c["metadata"].get("article", "Article ?")
         lines.append(f"- {article}: {c['text']}")

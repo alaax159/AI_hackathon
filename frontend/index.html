@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1419" />
+  <link rel="manifest" href="/manifest.json" />
   <title>AI Legal Aid — Palestine</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
     :root {
       --bg: #0f1419;
@@ -13,16 +17,19 @@
       --accent: #6ee7b7;
       --accent-dark: #34d399;
       --danger: #f87171;
+      --warn: #fbbf24;
+      --ok: #6ee7b7;
       --border: #2c3642;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Naskh Arabic", system-ui, sans-serif;
       background: var(--bg);
       color: var(--ink);
       min-height: 100vh;
     }
+    body.rtl { direction: rtl; }
     header {
       padding: 24px 32px;
       border-bottom: 1px solid var(--border);
@@ -59,6 +66,7 @@
       font-family: inherit;
       resize: vertical;
     }
+    body.rtl textarea { text-align: right; }
     button {
       background: var(--accent);
       color: #0c1117;
@@ -106,6 +114,7 @@
       font-size: 13px;
       color: var(--muted);
     }
+    body.rtl .source { border-left: 0; border-right: 3px solid var(--accent); }
     .source strong { color: var(--ink); display: block; margin-bottom: 4px; }
     .clinic {
       padding: 10px 12px;
@@ -146,18 +155,64 @@
       border: 1px dashed var(--border);
       border-radius: 6px;
     }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge.red    { background: rgba(248,113,113,0.18); color: #fca5a5; border: 1px solid #7f1d1d; }
+    .badge.amber  { background: rgba(251,191,36,0.18); color: #fcd34d; border: 1px solid #78350f; }
+    .badge.green  { background: rgba(110,231,183,0.15); color: #6ee7b7; border: 1px solid #064e3b; }
+    .badge::before { content: "●"; }
+    .deadline { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .plan { list-style: none; padding: 0; margin: 0; }
+    .plan li {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .plan li:last-child { border-bottom: 0; }
+    body.rtl .plan li { grid-template-columns: 1fr 130px; }
+    .plan .when {
+      color: var(--accent);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    #map { height: 320px; border-radius: 12px; margin-top: 8px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .pill {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .pill:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>AI Legal Aid — Palestine</h1>
-      <div class="sub">Palestinian Basic Law (2003, amended 2005)</div>
+      <h1 data-i18n="title">AI Legal Aid — Palestine</h1>
+      <div class="sub" data-i18n="subtitle">Palestinian Basic Law (2003, amended 2005)</div>
     </div>
     <div class="row">
-      <label for="lang" class="sub">Language</label>
+      <label for="lang" class="sub" data-i18n="language">Language</label>
       <select id="lang">
-        <option value="auto">Auto detect</option>
+        <option value="auto" data-i18n="auto_detect">Auto detect</option>
         <option value="en">English</option>
         <option value="ar">العربية</option>
       </select>
@@ -166,37 +221,117 @@
 
   <main>
     <div class="card">
-      <label for="question" class="sub">Describe your legal problem</label>
-      <textarea id="question" placeholder="e.g. My landlord verbally told me I have 3 days to leave. What are my rights?"></textarea>
+      <label for="question" class="sub" data-i18n="describe">Describe your legal problem</label>
+      <textarea id="question" data-i18n-placeholder="placeholder"
+        placeholder="e.g. My landlord verbally told me I have 3 days to leave. What are my rights?"></textarea>
       <div class="row" style="margin-top: 10px;">
-        <button id="ask">Get legal guidance</button>
-        <button id="record" class="record">🎙️ Record</button>
+        <button id="ask" data-i18n="ask">Get legal guidance</button>
+        <button id="record" class="record"><span data-i18n="record">🎙️ Record</span></button>
         <span id="status" class="status"></span>
       </div>
       <div class="examples" id="examples"></div>
     </div>
 
     <div id="results" style="display:none;">
-      <h2>Answer</h2>
+      <h2 data-i18n="urgency">Urgency</h2>
+      <div class="card">
+        <span id="badge" class="badge"></span>
+        <div id="deadline" class="deadline"></div>
+      </div>
+
+      <h2 data-i18n="action_plan">What to do next</h2>
+      <div class="card">
+        <ol id="plan" class="plan"></ol>
+      </div>
+
+      <h2 data-i18n="answer_h">Answer</h2>
       <div class="card">
         <div id="intent" class="status"></div>
         <div id="answer" class="answer"></div>
+        <div class="toolbar">
+          <button id="speak" class="pill"><span data-i18n="listen">▶ Listen</span></button>
+          <button id="copy"  class="pill"><span data-i18n="copy">⧉ Copy</span></button>
+          <button id="share" class="pill"><span data-i18n="share">↗ Share</span></button>
+        </div>
       </div>
 
-      <h2>Legal basis</h2>
+      <h2 data-i18n="legal_basis">Legal basis</h2>
       <div id="sources" class="sources"></div>
 
-      <h2>Nearby legal aid</h2>
-      <div id="clinics"></div>
+      <h2 data-i18n="nearby">Nearby legal aid</h2>
+      <div id="map"></div>
+      <div id="clinics" style="margin-top: 12px;"></div>
     </div>
 
-    <div class="disclaimer">
+    <div class="disclaimer" data-i18n="disclaimer">
       This is general legal information — not legal advice. For any specific situation,
       consult a licensed Palestinian lawyer or visit a legal aid center.
     </div>
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
+    // ---------- i18n ----------
+    const I18N = {
+      en: {
+        title: "AI Legal Aid — Palestine",
+        subtitle: "Palestinian Basic Law (2003, amended 2005)",
+        language: "Language",
+        auto_detect: "Auto detect",
+        describe: "Describe your legal problem",
+        placeholder: "e.g. My landlord verbally told me I have 3 days to leave. What are my rights?",
+        ask: "Get legal guidance",
+        record: "🎙️ Record",
+        stop: "⏹ Stop",
+        urgency: "Urgency",
+        action_plan: "What to do next",
+        answer_h: "Answer",
+        legal_basis: "Legal basis",
+        nearby: "Nearby legal aid",
+        listen: "▶ Listen",
+        listen_stop: "■ Stop",
+        copy: "⧉ Copy",
+        copied: "✓ Copied",
+        share: "↗ Share",
+        thinking: "thinking…",
+        listening: "listening…",
+        transcribed: "transcribed",
+        recording: "recording…",
+        transcribing: "transcribing…",
+        mic_unsupported: "audio not supported in this browser",
+        disclaimer: "This is general legal information — not legal advice. For any specific situation, consult a licensed Palestinian lawyer or visit a legal aid center.",
+      },
+      ar: {
+        title: "المساعد القانوني الذكي — فلسطين",
+        subtitle: "القانون الأساسي الفلسطيني (2003، المعدل 2005)",
+        language: "اللغة",
+        auto_detect: "كشف تلقائي",
+        describe: "صف مشكلتك القانونية",
+        placeholder: "مثلاً: قال لي صاحب البيت شفهياً إن عليّ المغادرة خلال 3 أيام. ما هي حقوقي؟",
+        ask: "احصل على إرشاد قانوني",
+        record: "🎙️ تسجيل",
+        stop: "⏹ إيقاف",
+        urgency: "مستوى الإلحاح",
+        action_plan: "ماذا تفعل الآن",
+        answer_h: "الإجابة",
+        legal_basis: "الأساس القانوني",
+        nearby: "مراكز مساعدة قانونية قريبة",
+        listen: "▶ استماع",
+        listen_stop: "■ إيقاف",
+        copy: "⧉ نسخ",
+        copied: "✓ تم النسخ",
+        share: "↗ مشاركة",
+        thinking: "جارٍ التفكير…",
+        listening: "جارٍ الاستماع…",
+        transcribed: "تم التحويل",
+        recording: "جارٍ التسجيل…",
+        transcribing: "جارٍ التحويل…",
+        mic_unsupported: "الميكروفون غير مدعوم في هذا المتصفح",
+        disclaimer: "هذه معلومات قانونية عامة وليست استشارة قانونية. لحالتك الخاصة، يُرجى استشارة محامٍ فلسطيني مُرخَّص أو زيارة مركز للمساعدة القانونية.",
+      },
+    };
+
     const EXAMPLES = {
       en: [
         "My landlord verbally told me I have 3 days to leave. What are my rights?",
@@ -215,13 +350,29 @@
     const statusEl = $("status");
     const langSel = $("lang");
 
+    function uiLang() {
+      return langSel.value === "ar" ? "ar" : "en";
+    }
+    function t(key) {
+      return I18N[uiLang()][key] || I18N.en[key] || key;
+    }
+    function applyI18n() {
+      document.body.classList.toggle("rtl", uiLang() === "ar");
+      document.documentElement.lang = uiLang();
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+      });
+      renderExamples();
+    }
+
     function renderExamples() {
-      const lang = langSel.value;
+      const v = langSel.value;
       const host = $("examples");
       host.innerHTML = "";
-      const list = lang === "auto"
-        ? [...EXAMPLES.en, ...EXAMPLES.ar]
-        : EXAMPLES[lang];
+      const list = v === "auto" ? [...EXAMPLES.en, ...EXAMPLES.ar] : EXAMPLES[v];
       for (const ex of list) {
         const b = document.createElement("button");
         b.className = "example";
@@ -231,13 +382,14 @@
       }
     }
 
-    langSel.onchange = renderExamples;
-    renderExamples();
+    langSel.onchange = applyI18n;
+    applyI18n();
 
+    // ---------- /ask ----------
     async function ask() {
       const q = $("question").value.trim();
       if (!q) return;
-      statusEl.textContent = "thinking…";
+      statusEl.textContent = t("thinking");
       $("ask").disabled = true;
       try {
         const resp = await fetch("/ask", {
@@ -258,15 +410,33 @@
 
     function renderResults(data) {
       $("results").style.display = "block";
+      const isArabic = data.language === "ar" || /[؀-ۿ]/.test(data.answer || "");
+
+      // Urgency badge
+      const tr = data.triage || {};
+      const badge = $("badge");
+      badge.className = "badge " + (tr.color || "green");
+      badge.textContent = tr.label || "";
+      $("deadline").textContent = tr.deadline_hint || "";
+
+      // Action plan
+      const planEl = $("plan");
+      planEl.innerHTML = "";
+      for (const step of data.action_plan || []) {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="when">${escapeHtml(step.timeframe)}</span><span>${escapeHtml(step.action)}</span>`;
+        planEl.appendChild(li);
+      }
+
+      // Answer
       const answerEl = $("answer");
       answerEl.textContent = data.answer;
-      const isArabic = /[؀-ۿ]/.test(data.answer || "");
-      const rtl = langSel.value === "ar" || (langSel.value === "auto" && isArabic);
-      answerEl.className = "answer" + (rtl ? " rtl" : "");
+      answerEl.className = "answer" + (isArabic ? " rtl" : "");
 
       const i = data.intent || {};
-      $("intent").textContent = `Intent: ${i.label || "general"} (confidence ${(i.confidence ?? 0).toFixed(2)})`;
+      $("intent").textContent = `intent: ${i.label || "general"} · confidence ${(i.confidence ?? 0).toFixed(2)}`;
 
+      // Sources
       const sourcesEl = $("sources");
       sourcesEl.innerHTML = "";
       for (const s of data.sources || []) {
@@ -276,19 +446,12 @@
         sourcesEl.appendChild(d);
       }
 
-      const clinicsEl = $("clinics");
-      clinicsEl.innerHTML = "";
-      for (const c of data.clinics || []) {
-        const d = document.createElement("div");
-        d.className = "clinic";
-        const tags = (c.specialties || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
-        d.innerHTML = `
-          <div class="name">${escapeHtml(c.name)}</div>
-          <div class="meta">${escapeHtml(c.city)}, ${escapeHtml(c.region)} • ${escapeHtml(c.phone)} • ${escapeHtml(c.email)}</div>
-          <div style="margin-top:6px;">${tags}</div>
-        `;
-        clinicsEl.appendChild(d);
-      }
+      // Clinics + map
+      renderClinics(data.clinics || []);
+
+      // Stash for TTS / copy / share
+      window.__lastAnswer = data.answer || "";
+      window.__lastLang = isArabic ? "ar" : "en";
     }
 
     function escapeHtml(s) {
@@ -300,10 +463,121 @@
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) ask();
     });
 
-    // ---- Voice input ----
-    // Prefer the browser's built-in SpeechRecognition (instant, on-device,
-    // supports Arabic, no server roundtrip, no ffmpeg). Only fall back to
-    // the /transcribe upload if the browser does not expose it.
+    // ---------- TTS ----------
+    let speaking = false;
+    function speakLangCode(lang) { return lang === "ar" ? "ar-SA" : "en-US"; }
+    function pickVoice(lang) {
+      const voices = window.speechSynthesis.getVoices();
+      const code = speakLangCode(lang);
+      return voices.find(v => v.lang === code)
+          || voices.find(v => v.lang.startsWith(lang))
+          || voices[0];
+    }
+    $("speak").onclick = () => {
+      if (!("speechSynthesis" in window)) {
+        statusEl.textContent = "TTS not supported"; return;
+      }
+      if (speaking) {
+        window.speechSynthesis.cancel();
+        speaking = false;
+        $("speak").querySelector("span").textContent = t("listen");
+        return;
+      }
+      const text = window.__lastAnswer || $("answer").textContent;
+      if (!text) return;
+      const u = new SpeechSynthesisUtterance(text);
+      const lang = window.__lastLang || uiLang();
+      u.lang = speakLangCode(lang);
+      const v = pickVoice(lang);
+      if (v) u.voice = v;
+      u.rate = 0.95;
+      u.onend = () => { speaking = false; $("speak").querySelector("span").textContent = t("listen"); };
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+      speaking = true;
+      $("speak").querySelector("span").textContent = t("listen_stop");
+    };
+
+    // Voices may load async on Chrome.
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {};
+    }
+
+    // ---------- Copy / Share ----------
+    $("copy").onclick = async () => {
+      const text = window.__lastAnswer || $("answer").textContent;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        const span = $("copy").querySelector("span");
+        const orig = span.textContent;
+        span.textContent = t("copied");
+        setTimeout(() => { span.textContent = orig; }, 1200);
+      } catch (e) { statusEl.textContent = "copy failed"; }
+    };
+
+    $("share").onclick = async () => {
+      const text = window.__lastAnswer || $("answer").textContent;
+      if (!text) return;
+      if (navigator.share) {
+        try { await navigator.share({ title: t("title"), text }); }
+        catch (e) { /* user cancelled */ }
+      } else {
+        await navigator.clipboard.writeText(text);
+        statusEl.textContent = t("copied");
+      }
+    };
+
+    // ---------- Map ----------
+    let map = null, markersLayer = null;
+    function ensureMap() {
+      if (map) return map;
+      map = L.map("map", { scrollWheelZoom: false }).setView([31.95, 35.20], 8);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap',
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+      return map;
+    }
+
+    function renderClinics(clinics) {
+      // Map pins
+      const m = ensureMap();
+      markersLayer.clearLayers();
+      const points = [];
+      for (const c of clinics) {
+        if (c.lat == null && c.latitude == null) continue;
+        const lat = c.lat ?? c.latitude;
+        const lon = c.lon ?? c.longitude;
+        if (lat && lon) {
+          const marker = L.marker([lat, lon])
+            .bindPopup(`<strong>${escapeHtml(c.name)}</strong><br>${escapeHtml(c.city)}, ${escapeHtml(c.region)}<br>${escapeHtml(c.phone)}`);
+          marker.addTo(markersLayer);
+          points.push([lat, lon]);
+        }
+      }
+      if (points.length) m.fitBounds(points, { padding: [30, 30], maxZoom: 11 });
+
+      // Cards (we have lat/lon? our /ask response doesn't include them, so re-fetch
+      // from /clinics with intent for richer data including coords).
+      const clinicsEl = $("clinics");
+      clinicsEl.innerHTML = "";
+      for (const c of clinics) {
+        const d = document.createElement("div");
+        d.className = "clinic";
+        const tags = (c.specialties || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+        const dist = c.distance_km != null ? ` · ${c.distance_km} km` : "";
+        d.innerHTML = `
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="meta">${escapeHtml(c.city)}, ${escapeHtml(c.region)} · ${escapeHtml(c.phone)} · ${escapeHtml(c.email)}${dist}</div>
+          <div style="margin-top:6px;">${tags}</div>
+        `;
+        clinicsEl.appendChild(d);
+      }
+    }
+
+    // ---------- Voice input ----------
     const recBtn = $("record");
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -311,17 +585,15 @@
       const v = langSel.value;
       if (v === "ar") return "ar-PS";
       if (v === "en") return "en-US";
-      return undefined; // auto -> let the browser default
+      return undefined;
     }
 
-    let recog = null;
-    let recognizing = false;
-    let mediaRecorder = null;
-    let chunks = [];
+    let recog = null, recognizing = false;
+    let mediaRecorder = null, chunks = [];
 
     function setRecBtn(on) {
       recBtn.classList.toggle("on", on);
-      recBtn.textContent = on ? "⏹ Stop" : "🎙️ Record";
+      recBtn.querySelector("span").textContent = on ? t("stop") : t("record");
     }
 
     if (SR) {
@@ -332,54 +604,35 @@
 
       recog.onresult = (e) => {
         let txt = "";
-        for (let i = 0; i < e.results.length; i++) {
-          txt += e.results[i][0].transcript;
-        }
+        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
         $("question").value = txt;
         statusEl.textContent = e.results[e.results.length - 1].isFinal
-          ? "transcribed"
-          : "listening…";
+          ? t("transcribed") : t("listening");
       };
       recog.onerror = (e) => {
         statusEl.textContent = "mic error: " + (e.error || "unknown");
-        recognizing = false;
-        setRecBtn(false);
+        recognizing = false; setRecBtn(false);
       };
-      recog.onend = () => {
-        recognizing = false;
-        setRecBtn(false);
-      };
+      recog.onend = () => { recognizing = false; setRecBtn(false); };
     }
 
     recBtn.onclick = async () => {
       if (recog) {
-        if (recognizing) {
-          recog.stop();
-          return;
-        }
+        if (recognizing) { recog.stop(); return; }
         const code = srLangCode();
         if (code) recog.lang = code;
         try {
           recog.start();
-          recognizing = true;
-          setRecBtn(true);
-          statusEl.textContent = "listening…";
-        } catch (err) {
-          statusEl.textContent = "mic error: " + err.message;
-        }
+          recognizing = true; setRecBtn(true);
+          statusEl.textContent = t("listening");
+        } catch (err) { statusEl.textContent = "mic error: " + err.message; }
         return;
       }
-
-      // Fallback: upload to /transcribe (requires ffmpeg + whisper on the server).
+      // Fallback: server transcription
       if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-        setRecBtn(false);
-        return;
+        mediaRecorder.stop(); setRecBtn(false); return;
       }
-      if (!navigator.mediaDevices) {
-        statusEl.textContent = "audio not supported in this browser";
-        return;
-      }
+      if (!navigator.mediaDevices) { statusEl.textContent = t("mic_unsupported"); return; }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         chunks = [];
@@ -388,7 +641,7 @@
         mediaRecorder.onstop = async () => {
           stream.getTracks().forEach(t => t.stop());
           const blob = new Blob(chunks, { type: "audio/webm" });
-          statusEl.textContent = "transcribing…";
+          statusEl.textContent = t("transcribing");
           const fd = new FormData();
           fd.append("audio", blob, "speech.webm");
           if (langSel.value !== "auto") fd.append("language", langSel.value);
@@ -400,18 +653,19 @@
             }
             const data = await r.json();
             $("question").value = data.text || "";
-            statusEl.textContent = `transcribed (${data.language || "?"})`;
-          } catch (err) {
-            statusEl.textContent = "transcription error: " + err.message;
-          }
+            statusEl.textContent = `${t("transcribed")} (${data.language || "?"})`;
+          } catch (err) { statusEl.textContent = "transcription error: " + err.message; }
         };
         mediaRecorder.start();
         setRecBtn(true);
-        statusEl.textContent = "recording…";
-      } catch (err) {
-        statusEl.textContent = "mic error: " + err.message;
-      }
+        statusEl.textContent = t("recording");
+      } catch (err) { statusEl.textContent = "mic error: " + err.message; }
     };
+
+    // ---------- PWA service worker ----------
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   </script>
 </body>
 </html>

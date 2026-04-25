@@ -136,6 +136,8 @@ def find_clinics(
                 "region": c.region,
                 "phone": c.phone,
                 "email": c.email,
+                "latitude": c.latitude,
+                "longitude": c.longitude,
                 "specialties": c.specialties,
                 "distance_km": None if math.isinf(distance) else round(distance, 1),
             }
