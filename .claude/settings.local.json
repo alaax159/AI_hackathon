@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python -m pipeline.palestine_law_pipeline)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(command -v ffmpeg)"
     ]
   }
 }

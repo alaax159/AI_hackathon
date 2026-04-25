@@ -28,9 +28,11 @@ app.add_middleware(
 
 
 class AskRequest(BaseModel):
-    question: str = Field(..., min_length=2)
-    language: str = Field("en", pattern="^(en|ar)$")
-    top_k: int = 3
+    question: str = Field(..., min_length=2, max_length=2000)
+    # "auto" lets the inference layer detect Arabic vs English from the question.
+    language: str = Field("auto", pattern="^(en|ar|auto)$")
+    # Chroma rejects top_k <= 0; cap at the corpus size to avoid surprises.
+    top_k: int = Field(3, ge=1, le=20)
 
 
 class AskResponse(BaseModel):
@@ -52,7 +54,8 @@ def health() -> dict:
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest) -> AskResponse:
-    result = llm_answer(req.question, language=req.language, top_k=req.top_k)
+    lang = None if req.language == "auto" else req.language
+    result = llm_answer(req.question, language=lang, top_k=req.top_k)
     detected = intent_mod.classify(req.question)
     clinics = referral.find_clinics(intent=detected.label, limit=3)
     return AskResponse(
@@ -76,7 +79,7 @@ async def transcribe_endpoint(
     language: str | None = Form(None),
 ) -> dict:
     try:
-        from app.transcribe import transcribe_bytes
+        from app.transcribe import FfmpegMissingError, transcribe_bytes
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=f"transcription unavailable: {exc}") from exc
 
@@ -84,6 +87,8 @@ async def transcribe_endpoint(
     suffix = Path(audio.filename or "").suffix or ".webm"
     try:
         result = transcribe_bytes(data, suffix=suffix, language=language)
+    except FfmpegMissingError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover — whisper errors are varied
         raise HTTPException(status_code=500, detail=f"transcription failed: {exc}") from exc
     return {"text": result.text, "language": result.language, "duration": result.duration}

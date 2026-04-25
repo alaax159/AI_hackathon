@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
@@ -27,14 +28,27 @@ def _embed_model() -> str:
     return os.environ.get("EMBED_MODEL", DEFAULT_EMBED_MODEL)
 
 
+@lru_cache(maxsize=1)
 def _get_client():
     import chromadb
     return chromadb.PersistentClient(path=str(_chroma_dir()))
 
 
+@lru_cache(maxsize=1)
 def _get_embedding_fn():
     from chromadb.utils import embedding_functions
     return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=_embed_model())
+
+
+@lru_cache(maxsize=1)
+def _get_collection():
+    """Cached handle to the live collection — avoids re-initializing the
+    embedding model on every retrieval call."""
+    return _get_client().get_or_create_collection(
+        name=COLLECTION_NAME,
+        embedding_function=_get_embedding_fn(),
+        metadata={"hnsw:space": "cosine"},
+    )
 
 
 def _get_or_create_collection(client, embedding_fn):
@@ -80,6 +94,7 @@ def build() -> int:
         client.delete_collection(COLLECTION_NAME)
     except Exception:
         pass
+    _get_collection.cache_clear()
     collection = _get_or_create_collection(client, _get_embedding_fn())
 
     ids = [c["id"] for c in chunks]
@@ -91,9 +106,10 @@ def build() -> int:
 
 def retrieve(query: str, top_k: int = 3) -> list[dict]:
     """Return the top_k most relevant chunks for a natural-language query."""
-    client = _get_client()
-    collection = _get_or_create_collection(client, _get_embedding_fn())
-    result = collection.query(query_texts=[query], n_results=top_k)
+    collection = _get_collection()
+    # Chroma raises if n_results <= 0 or exceeds the corpus size.
+    n = max(1, min(int(top_k), max(1, collection.count())))
+    result = collection.query(query_texts=[query], n_results=n)
     docs: list[str] = (result.get("documents") or [[]])[0]
     metas: list[dict] = (result.get("metadatas") or [[]])[0]
     ids: list[str] = (result.get("ids") or [[]])[0]

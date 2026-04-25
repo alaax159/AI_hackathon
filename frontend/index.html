@@ -157,6 +157,7 @@
     <div class="row">
       <label for="lang" class="sub">Language</label>
       <select id="lang">
+        <option value="auto">Auto detect</option>
         <option value="en">English</option>
         <option value="ar">العربية</option>
       </select>
@@ -218,7 +219,10 @@
       const lang = langSel.value;
       const host = $("examples");
       host.innerHTML = "";
-      for (const ex of EXAMPLES[lang]) {
+      const list = lang === "auto"
+        ? [...EXAMPLES.en, ...EXAMPLES.ar]
+        : EXAMPLES[lang];
+      for (const ex of list) {
         const b = document.createElement("button");
         b.className = "example";
         b.textContent = ex;
@@ -256,7 +260,9 @@
       $("results").style.display = "block";
       const answerEl = $("answer");
       answerEl.textContent = data.answer;
-      answerEl.className = "answer" + (langSel.value === "ar" ? " rtl" : "");
+      const isArabic = /[؀-ۿ]/.test(data.answer || "");
+      const rtl = langSel.value === "ar" || (langSel.value === "auto" && isArabic);
+      answerEl.className = "answer" + (rtl ? " rtl" : "");
 
       const i = data.intent || {};
       $("intent").textContent = `Intent: ${i.label || "general"} (confidence ${(i.confidence ?? 0).toFixed(2)})`;
@@ -294,16 +300,80 @@
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) ask();
     });
 
-    // ---- Voice recording ----
+    // ---- Voice input ----
+    // Prefer the browser's built-in SpeechRecognition (instant, on-device,
+    // supports Arabic, no server roundtrip, no ffmpeg). Only fall back to
+    // the /transcribe upload if the browser does not expose it.
+    const recBtn = $("record");
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function srLangCode() {
+      const v = langSel.value;
+      if (v === "ar") return "ar-PS";
+      if (v === "en") return "en-US";
+      return undefined; // auto -> let the browser default
+    }
+
+    let recog = null;
+    let recognizing = false;
     let mediaRecorder = null;
     let chunks = [];
-    const recBtn = $("record");
+
+    function setRecBtn(on) {
+      recBtn.classList.toggle("on", on);
+      recBtn.textContent = on ? "⏹ Stop" : "🎙️ Record";
+    }
+
+    if (SR) {
+      recog = new SR();
+      recog.interimResults = true;
+      recog.continuous = false;
+      recog.maxAlternatives = 1;
+
+      recog.onresult = (e) => {
+        let txt = "";
+        for (let i = 0; i < e.results.length; i++) {
+          txt += e.results[i][0].transcript;
+        }
+        $("question").value = txt;
+        statusEl.textContent = e.results[e.results.length - 1].isFinal
+          ? "transcribed"
+          : "listening…";
+      };
+      recog.onerror = (e) => {
+        statusEl.textContent = "mic error: " + (e.error || "unknown");
+        recognizing = false;
+        setRecBtn(false);
+      };
+      recog.onend = () => {
+        recognizing = false;
+        setRecBtn(false);
+      };
+    }
 
     recBtn.onclick = async () => {
+      if (recog) {
+        if (recognizing) {
+          recog.stop();
+          return;
+        }
+        const code = srLangCode();
+        if (code) recog.lang = code;
+        try {
+          recog.start();
+          recognizing = true;
+          setRecBtn(true);
+          statusEl.textContent = "listening…";
+        } catch (err) {
+          statusEl.textContent = "mic error: " + err.message;
+        }
+        return;
+      }
+
+      // Fallback: upload to /transcribe (requires ffmpeg + whisper on the server).
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
-        recBtn.classList.remove("on");
-        recBtn.textContent = "🎙️ Record";
+        setRecBtn(false);
         return;
       }
       if (!navigator.mediaDevices) {
@@ -321,10 +391,13 @@
           statusEl.textContent = "transcribing…";
           const fd = new FormData();
           fd.append("audio", blob, "speech.webm");
-          fd.append("language", langSel.value);
+          if (langSel.value !== "auto") fd.append("language", langSel.value);
           try {
             const r = await fetch("/transcribe", { method: "POST", body: fd });
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            if (!r.ok) {
+              const j = await r.json().catch(() => ({}));
+              throw new Error(j.detail || `HTTP ${r.status}`);
+            }
             const data = await r.json();
             $("question").value = data.text || "";
             statusEl.textContent = `transcribed (${data.language || "?"})`;
@@ -333,8 +406,7 @@
           }
         };
         mediaRecorder.start();
-        recBtn.classList.add("on");
-        recBtn.textContent = "⏹ Stop";
+        setRecBtn(true);
         statusEl.textContent = "recording…";
       } catch (err) {
         statusEl.textContent = "mic error: " + err.message;
