@@ -1,159 +1,1227 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#1B5E20" />
-  <meta name="description" content="PalJustice AI — مساعد قانوني ذكي للمواطنين الفلسطينيين لفهم حقوقهم بموجب القانون الأساسي الفلسطيني." />
-  <link rel="manifest" href="/manifest.json" />
-  <title>PalJustice AI 🇵🇸</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <link rel="stylesheet" href="/static/styles.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="theme-color" content="#080b14" />
+<title>PalJustice AI 🇵🇸</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth;-webkit-tap-highlight-color:transparent}
+
+/* ── Tokens ── */
+:root{
+  --bg:        #07090f;
+  --bg2:       #0d1117;
+  --gold:      #C9A84C;
+  --gold-lt:   #E2C97E;
+  --gold-pale: rgba(201,168,76,0.12);
+  --gold-glow: rgba(201,168,76,0.30);
+  --glass:     rgba(255,255,255,0.04);
+  --border:    rgba(201,168,76,0.18);
+  --border-hi: rgba(201,168,76,0.45);
+  --white:     #F5F5F5;
+  --w70:       rgba(245,245,245,0.70);
+  --w40:       rgba(245,245,245,0.40);
+  --w10:       rgba(245,245,245,0.07);
+  --red:       #EF4444;
+  --amber:     #F59E0B;
+  --green:     #22C55E;
+  --r:         18px;
+  --r-sm:      12px;
+  --ease:      cubic-bezier(0.4,0,0.2,1);
+  --t:         0.28s;
+  --font-en:   'Inter',system-ui,sans-serif;
+  --font-ar:   'Noto Naskh Arabic','Segoe UI',Tahoma,sans-serif;
+  --font-serif:'Cormorant Garamond','Georgia',serif;
+}
+
+body{
+  font-family:var(--font-ar);
+  background:var(--bg);
+  color:var(--white);
+  min-height:100vh;
+  direction:rtl;
+  overflow-x:hidden;
+}
+body.ltr{direction:ltr;font-family:var(--font-en)}
+
+/* ── Animated background ── */
+.bg-layer{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 40%, rgba(12,25,55,0.75) 0%,transparent 65%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(30,12,55,0.55) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 90%, rgba(8,35,25,0.50) 0%,transparent 60%),
+    linear-gradient(150deg,#07090f 0%,#0a0e1a 50%,#080c12 100%);
+  animation:bgShift 18s ease-in-out infinite alternate;
+}
+@keyframes bgShift{
+  0%  {filter:brightness(1)   hue-rotate(0deg)}
+  50% {filter:brightness(1.04)hue-rotate(4deg)}
+  100%{filter:brightness(0.97)hue-rotate(-4deg)}
+}
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.025;
+  background-image:
+    linear-gradient(var(--gold) 1px,transparent 1px),
+    linear-gradient(90deg,var(--gold) 1px,transparent 1px);
+  background-size:80px 80px;
+}
+canvas#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-scales{
+  position:fixed;bottom:-4%;right:2%;
+  font-size:min(55vw,560px);
+  opacity:0.018;z-index:0;pointer-events:none;
+  filter:blur(3px);user-select:none;
+  animation:scaleFloat 10s ease-in-out infinite;
+}
+@keyframes scaleFloat{
+  0%,100%{transform:scale(1)  rotate(-6deg);opacity:0.018}
+  50%    {transform:scale(1.04)rotate(-4deg);opacity:0.03}
+}
+
+/* ── Layout shell ── */
+.shell{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Header ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:62px;padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(7,9,15,0.75);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border-bottom:1px solid var(--border);
+}
+.h-brand{display:flex;align-items:center;gap:9px}
+.h-scales{font-size:22px}
+.h-name{
+  font-family:var(--font-en);font-size:17px;font-weight:800;
+  letter-spacing:.4px;
+  background:linear-gradient(135deg,#fff 20%,var(--gold-lt) 60%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.h-flag{font-size:16px}
+.h-right{display:flex;align-items:center;gap:10px}
+.lang-btn{
+  background:var(--glass);border:1px solid var(--border);
+  color:var(--gold);padding:6px 18px;border-radius:30px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all var(--t) var(--ease);font-family:var(--font-en);letter-spacing:.6px;
+}
+.lang-btn:hover{background:var(--gold-pale);border-color:var(--gold);box-shadow:0 0 18px var(--gold-glow)}
+.live-badge{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);
+  border-radius:30px;padding:5px 12px;font-size:11px;font-weight:600;
+  color:#86EFAC;font-family:var(--font-en);
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:#22C55E;
+  animation:livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* ── Hero ── */
+.hero{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:100px 20px 48px;
+  text-align:center;gap:0;
+}
+
+/* ornament */
+.ornament{
+  display:flex;align-items:center;gap:14px;margin-bottom:18px;
+}
+.orn-line{
+  height:1px;width:56px;
+  background:linear-gradient(90deg,transparent,var(--gold));
+}
+.orn-line.r{background:linear-gradient(90deg,var(--gold),transparent)}
+.orn-txt{
+  font-size:10px;font-weight:700;color:var(--gold);
+  letter-spacing:4px;text-transform:uppercase;font-family:var(--font-en);
+}
+
+/* main title */
+.hero-title{
+  font-family:var(--font-en);
+  font-size:clamp(38px,7.5vw,80px);
+  font-weight:800;line-height:1.05;letter-spacing:1px;
+  margin-bottom:6px;
+  background:linear-gradient(140deg,#fff 25%,var(--gold-lt) 60%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:titleIn .9s var(--ease) both;
+}
+@keyframes titleIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-flag{font-size:clamp(28px,5vw,58px);vertical-align:middle}
+
+.hero-sub{
+  font-size:clamp(14px,2.2vw,18px);color:var(--w70);
+  max-width:500px;line-height:1.75;margin-bottom:24px;
+  animation:titleIn .9s .15s var(--ease) both;
+}
+body.ltr .hero-sub{font-family:var(--font-en)}
+
+/* stats pills */
+.pills{
+  display:flex;flex-wrap:wrap;gap:7px;
+  justify-content:center;margin-bottom:36px;
+  animation:titleIn .9s .25s var(--ease) both;
+}
+.pill{
+  background:var(--glass);border:1px solid var(--border);border-radius:30px;
+  padding:5px 15px;font-size:11px;font-weight:500;
+  color:var(--gold-lt);font-family:var(--font-en);
+  backdrop-filter:blur(10px);letter-spacing:.2px;
+}
+
+/* ── Main card ── */
+.card{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  padding:36px 32px;width:100%;max-width:580px;
+  box-shadow:0 0 60px rgba(201,168,76,0.08),inset 0 1px 0 rgba(255,255,255,0.05);
+  animation:cardIn .8s .35s var(--ease) both;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+/* ── Mic ── */
+.mic-section{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:26px}
+.mic-wrap{
+  position:relative;width:116px;height:116px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mic-ring{
+  position:absolute;border-radius:50%;
+  border:1px solid rgba(201,168,76,0.25);
+}
+.mic-ring:nth-child(1){width:116px;height:116px;animation:ringIdle 3s ease-in-out infinite}
+.mic-ring:nth-child(2){width:138px;height:138px;animation:ringIdle 3s .5s ease-in-out infinite;opacity:.55}
+.mic-ring:nth-child(3){width:160px;height:160px;animation:ringIdle 3s 1s ease-in-out infinite;opacity:.25}
+@keyframes ringIdle{
+  0%,100%{transform:scale(1);opacity:.4}
+  50%{transform:scale(1.05);opacity:.75}
+}
+.mic-wrap.rec .mic-ring{border-color:rgba(239,68,68,.55);animation:ringRec 1s ease-in-out infinite}
+@keyframes ringRec{
+  0%,100%{transform:scale(1);opacity:.8}
+  50%{transform:scale(1.14);opacity:.35}
+}
+.mic-btn{
+  width:84px;height:84px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#d4a93a 0%,#8B6914 100%);
+  color:var(--bg);font-size:32px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:2;
+  box-shadow:0 4px 28px rgba(201,168,76,0.50),inset 0 1px 0 rgba(255,255,255,0.2);
+  transition:transform var(--t) var(--ease),box-shadow var(--t) var(--ease);
+}
+.mic-btn:hover{transform:scale(1.08);box-shadow:0 6px 38px rgba(201,168,76,.7),inset 0 1px 0 rgba(255,255,255,.3)}
+.mic-btn:active{transform:scale(0.94)}
+.mic-wrap.rec .mic-btn{
+  background:linear-gradient(135deg,#EF4444,#991B1B);color:#fff;
+  box-shadow:0 4px 28px rgba(239,68,68,0.55);
+}
+.mic-lbl{font-size:13px;font-weight:600;color:var(--gold-lt);letter-spacing:.4px}
+
+/* transcription box */
+.transcription{
+  background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
+  border-radius:var(--r-sm);padding:11px 16px;font-size:14px;
+  color:var(--gold-lt);text-align:start;margin-bottom:14px;
+  line-height:1.65;display:none;animation:fadeIn .3s ease;
+}
+.transcription.on{display:block}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* divider */
+.divider{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.divider::before,.divider::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,0.25),transparent);
+}
+.div-txt{font-size:10px;color:var(--w40);text-transform:uppercase;letter-spacing:1.2px}
+
+/* input row */
+.input-row{display:flex;gap:9px;margin-bottom:18px}
+.txt-input{
+  flex:1;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(201,168,76,0.22);border-radius:var(--r-sm);
+  padding:13px 17px;font-size:14px;font-family:inherit;
+  color:var(--white);direction:inherit;transition:all var(--t) var(--ease);
+}
+.txt-input::placeholder{color:var(--w40)}
+.txt-input:focus{
+  outline:none;border-color:var(--gold);
+  background:rgba(201,168,76,0.05);box-shadow:0 0 0 3px rgba(201,168,76,0.10);
+}
+.send-btn{
+  width:48px;height:48px;flex-shrink:0;border-radius:var(--r-sm);
+  border:1px solid var(--gold);cursor:pointer;
+  background:linear-gradient(135deg,var(--gold),#7a5c10);
+  color:var(--bg);font-size:19px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--t) var(--ease);
+}
+.send-btn:hover{transform:scale(1.06);box-shadow:0 0 20px var(--gold-glow)}
+.send-btn:active{transform:scale(0.94)}
+
+/* examples */
+.ex-lbl{font-size:10px;font-weight:700;color:var(--w40);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;text-align:start}
+.examples{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.18);
+  border-radius:30px;padding:7px 14px;font-size:12px;
+  color:var(--w70);cursor:pointer;font-family:inherit;line-height:1.4;
+  transition:all var(--t) var(--ease);
+}
+.chip:hover{border-color:var(--gold);color:var(--gold-lt);background:var(--gold-pale);transform:translateY(-1px)}
+.chip:active{transform:scale(.97)}
+
+/* ── Response zone ── */
+.response-zone{width:100%;max-width:580px;margin-top:16px}
+
+.loading-card{
+  display:none;background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);backdrop-filter:blur(20px);
+  padding:24px 28px;align-items:center;gap:16px;animation:fadeIn .3s ease;
+}
+.loading-card.on{display:flex}
+.spinner{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  border:2px solid rgba(201,168,76,0.18);border-top-color:var(--gold);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:13px;color:var(--w70)}
+
+.res-card{
+  display:none;background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  padding:28px 30px;
+  box-shadow:0 0 50px rgba(201,168,76,0.07);
+  animation:slideUp .45s cubic-bezier(0.34,1.56,0.64,1);
+}
+.res-card.on{display:block}
+@keyframes slideUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+/* urgency badge */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:30px;font-size:11px;font-weight:700;
+  letter-spacing:.4px;margin-bottom:12px;font-family:var(--font-en);
+}
+.badge.red  {background:rgba(239,68,68,0.14); border:1px solid rgba(239,68,68,0.35); color:#FCA5A5}
+.badge.amber{background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.35);color:#FCD34D}
+.badge.green{background:rgba(34,197,94,0.14); border:1px solid rgba(34,197,94,0.35); color:#86EFAC}
+
+.deadline{font-size:11px;color:var(--w40);margin-bottom:14px;margin-top:-4px}
+.res-q{font-size:12px;color:var(--w40);font-style:italic;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.res-ans{font-size:14px;line-height:1.82;color:var(--w70);margin-bottom:18px}
+
+/* section label */
+.sec-lbl{
+  font-size:9px;font-weight:800;color:var(--gold);
+  text-transform:uppercase;letter-spacing:2px;margin-bottom:9px;
+  display:flex;align-items:center;gap:10px;font-family:var(--font-en);
+}
+.sec-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,.35),transparent)}
+
+/* action plan */
+.steps{margin-bottom:18px}
+.step{
+  display:flex;gap:12px;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);align-items:flex-start;
+}
+.step:last-child{border-bottom:none}
+.step-t{
+  font-size:10px;font-weight:800;color:var(--gold);
+  font-family:var(--font-en);min-width:78px;padding-top:2px;flex-shrink:0;
+}
+.step-a{font-size:13px;color:var(--w70);line-height:1.55}
+
+/* legal source cards */
+.src{margin-bottom:8px}
+.src-hd{
+  background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--r-sm);padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;font-size:12px;font-weight:600;color:var(--gold-lt);
+  transition:border-color var(--t) var(--ease);
+}
+.src-hd:hover{border-color:rgba(201,168,76,0.35)}
+.src-arr{font-size:10px;color:var(--w40);transition:transform var(--t) var(--ease)}
+.src-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s ease;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.06);border-top:none;
+  border-radius:0 0 var(--r-sm) var(--r-sm);
+}
+.src-txt{padding:10px 14px;font-size:12px;line-height:1.72;color:var(--w40)}
+.src-open .src-arr{transform:rotate(180deg)}
+.src-open .src-body{max-height:240px}
+
+/* clinic */
+.clinic-box{
+  display:flex;align-items:flex-start;gap:10px;
+  background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.22);
+  border-radius:var(--r-sm);padding:11px 14px;margin-top:12px;font-size:12px;
+}
+.clinic-pin{font-size:18px;flex-shrink:0;margin-top:1px}
+.clinic-nm{font-weight:700;color:#86EFAC}
+.clinic-inf{color:var(--w40);margin-top:2px}
+.clinic-inf a{color:#86EFAC;text-decoration:none}
+
+/* response action buttons */
+.res-btns{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(201,168,76,0.1)}
+.res-btn{
+  background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.22);
+  color:var(--gold-lt);padding:8px 14px;border-radius:30px;
+  font-size:11px;font-weight:600;cursor:pointer;
+  transition:all var(--t) var(--ease);font-family:inherit;
+}
+.res-btn:hover{background:var(--gold-pale);border-color:var(--gold);box-shadow:0 0 14px rgba(201,168,76,0.2)}
+
+/* ── Disclaimer ── */
+.disc{
+  text-align:center;font-size:11px;color:var(--w40);line-height:1.65;
+  margin-top:18px;padding:13px 20px;max-width:580px;width:100%;
+  border:1px solid rgba(255,255,255,0.06);border-radius:var(--r-sm);
+  backdrop-filter:blur(8px);
+}
+.disc strong{color:var(--gold);font-weight:600}
+
+/* ── Waveform ── */
+.waveform{
+  display:none;align-items:flex-end;justify-content:center;
+  gap:4px;height:28px;margin-top:10px;
+}
+.waveform.on{display:flex}
+.wv-bar{
+  width:4px;border-radius:3px;
+  background:linear-gradient(180deg,var(--gold-lt),var(--gold));
+  transform-origin:bottom;
+}
+.wv-bar:nth-child(1){animation:wv 0.9s 0.0s ease-in-out infinite}
+.wv-bar:nth-child(2){animation:wv 0.9s 0.15s ease-in-out infinite}
+.wv-bar:nth-child(3){animation:wv 0.9s 0.3s ease-in-out infinite}
+.wv-bar:nth-child(4){animation:wv 0.9s 0.15s ease-in-out infinite}
+.wv-bar:nth-child(5){animation:wv 0.9s 0.0s ease-in-out infinite}
+@keyframes wv{
+  0%,100%{height:5px;opacity:.5}
+  50%{height:26px;opacity:1}
+}
+
+/* ── History button + panel ── */
+.hist-btn{
+  background:var(--glass);border:1px solid var(--border);
+  color:var(--w70);width:36px;height:36px;border-radius:50%;
+  font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--t) var(--ease);
+}
+.hist-btn:hover{border-color:var(--gold);color:var(--gold);box-shadow:0 0 14px var(--gold-glow)}
+.hist-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.5);
+  display:none;backdrop-filter:blur(4px);
+}
+.hist-overlay.on{display:block}
+.hist-panel{
+  position:fixed;top:0;right:0;bottom:0;z-index:301;
+  width:min(360px,92vw);
+  background:rgba(10,13,22,0.97);border-left:1px solid var(--border);
+  backdrop-filter:blur(30px);display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .38s var(--ease);
+}
+body.ltr .hist-panel{right:auto;left:0;border-left:none;border-right:1px solid var(--border);
+  transform:translateX(-100%)}
+.hist-panel.on{transform:translateX(0)}
+body.ltr .hist-panel.on{transform:translateX(0)}
+.hist-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-bottom:1px solid rgba(201,168,76,0.12);
+}
+.hist-title{font-size:13px;font-weight:700;color:var(--gold-lt);letter-spacing:.4px}
+.hist-close{
+  background:none;border:none;color:var(--w40);font-size:20px;
+  cursor:pointer;line-height:1;transition:color var(--t) var(--ease);
+}
+.hist-close:hover{color:var(--white)}
+.hist-list{flex:1;overflow-y:auto;padding:12px}
+.hist-list::-webkit-scrollbar{width:4px}
+.hist-list::-webkit-scrollbar-track{background:transparent}
+.hist-list::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.25);border-radius:2px}
+.hist-empty{text-align:center;color:var(--w40);font-size:13px;padding:40px 20px}
+.hist-item{
+  background:rgba(255,255,255,0.03);border:1px solid rgba(201,168,76,0.1);
+  border-radius:var(--r-sm);padding:12px 14px;margin-bottom:9px;cursor:pointer;
+  transition:all var(--t) var(--ease);
+}
+.hist-item:hover{border-color:var(--gold);background:var(--gold-pale)}
+.hist-q{font-size:12px;color:var(--white);line-height:1.5;margin-bottom:6px}
+.hist-meta{display:flex;align-items:center;gap:7px}
+.hist-badge{
+  font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:var(--font-en);
+}
+.hist-badge.red  {background:rgba(239,68,68,0.15);color:#FCA5A5;border:1px solid rgba(239,68,68,0.3)}
+.hist-badge.amber{background:rgba(245,158,11,0.15);color:#FCD34D;border:1px solid rgba(245,158,11,0.3)}
+.hist-badge.green{background:rgba(34,197,94,0.15);color:#86EFAC;border:1px solid rgba(34,197,94,0.3)}
+.hist-time{font-size:9px;color:var(--w40)}
+.hist-clear{
+  margin:8px 12px 12px;padding:9px;
+  background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);
+  border-radius:var(--r-sm);color:#FCA5A5;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all var(--t) var(--ease);font-family:inherit;
+}
+.hist-clear:hover{background:rgba(239,68,68,0.14);border-color:rgba(239,68,68,0.4)}
+
+/* ── Mobile ── */
+@media(max-width:560px){
+  header{padding:0 16px}
+  .hero{padding:86px 14px 36px}
+  .card{padding:26px 18px}
+  .res-card{padding:22px 18px}
+  .mic-btn{width:74px;height:74px;font-size:28px}
+  .mic-wrap{width:100px;height:100px}
+  .mic-ring:nth-child(1){width:100px;height:100px}
+  .mic-ring:nth-child(2){width:120px;height:120px}
+  .mic-ring:nth-child(3){width:140px;height:140px}
+  .h-name{font-size:15px}
+  .live-badge{display:none}
+}
+</style>
 </head>
 <body>
 
-  <!-- ══════ HEADER ══════ -->
-  <header class="app-header">
-    <button class="lang-toggle" id="lang-btn" onclick="toggleLang()">EN</button>
-    <div class="header-logo">
-      <span class="header-brand">PalJustice AI</span>
-      <span class="header-flag">🇵🇸</span>
-    </div>
-    <span class="header-scale">⚖️</span>
-  </header>
+<!-- ── Backgrounds ── -->
+<div class="bg-layer"></div>
+<div class="bg-grid"></div>
+<canvas id="stars"></canvas>
+<div class="bg-scales">⚖️</div>
 
-  <!-- ══════ SCREENS ══════ -->
-  <div class="app-body">
+<!-- ── Header ── -->
+<header>
+  <div class="h-brand">
+    <span class="h-scales">⚖️</span>
+    <span class="h-name">PalJustice AI</span>
+    <span class="h-flag">🇵🇸</span>
+  </div>
+  <div class="h-right">
+    <div class="live-badge"><div class="live-dot"></div><span id="live-txt">AI Online</span></div>
+    <button class="hist-btn" id="hist-btn" onclick="toggleHist()" title="History">🕐</button>
+    <button class="lang-btn" id="lang-btn" onclick="toggleLang()">EN</button>
+  </div>
+</header>
 
-    <!-- ── HOME ── -->
-    <div class="screen active" id="screen-home">
-      <div class="home-screen">
+<!-- History Panel -->
+<div class="hist-overlay" id="hist-overlay" onclick="toggleHist()"></div>
+<div class="hist-panel" id="hist-panel">
+  <div class="hist-hd">
+    <span class="hist-title" id="hist-title">السجل</span>
+    <button class="hist-close" onclick="toggleHist()">✕</button>
+  </div>
+  <div class="hist-list" id="hist-list"></div>
+  <button class="hist-clear" id="hist-clear" onclick="clearHist()">🗑 مسح السجل</button>
+</div>
 
-        <!-- Hero -->
-        <div class="hero-section">
-          <div class="hero-badge" id="hero-badge">🤖 مدعوم بالذكاء الاصطناعي</div>
-          <h1 class="home-title" id="home-title">PalJustice AI</h1>
-          <p class="home-subtitle" id="home-subtitle">مساعدك القانوني الذكي — القانون الأساسي الفلسطيني ٢٠٠٣</p>
-          <div class="stats-row">
-            <div class="stat-item">
-              <span class="stat-num">137+</span>
-              <span class="stat-label" id="stat-articles">مادة قانونية</span>
-            </div>
-            <div class="stat-sep"></div>
-            <div class="stat-item">
-              <span class="stat-num">7</span>
-              <span class="stat-label" id="stat-clinics">مركز مساعدة</span>
-            </div>
-            <div class="stat-sep"></div>
-            <div class="stat-item">
-              <span class="stat-num">8</span>
-              <span class="stat-label" id="stat-intents">تصنيف قانوني</span>
-            </div>
-          </div>
-        </div>
+<!-- ── Shell ── -->
+<div class="shell">
+<main class="hero">
 
-        <!-- Mic Button -->
-        <div class="mic-wrapper" id="mic-wrapper">
-          <div class="mic-ring"></div>
-          <button class="mic-btn" id="mic-btn" onclick="toggleRecording()" aria-label="Record">
-            🎤
-          </button>
-        </div>
-        <div class="mic-label" id="mic-label">احكي مشكلتك</div>
-
-        <!-- Live Transcription -->
-        <div class="transcription-box" id="transcription" data-placeholder="..."></div>
-
-        <!-- Text Input -->
-        <div class="or-divider"><span id="or-text">أو اكتب سؤالك</span></div>
-        <div class="text-input-row">
-          <input type="text" class="text-input" id="text-input" placeholder="اكتب مشكلتك القانونية..."
-                 onkeydown="if(event.key==='Enter')handleTextSubmit()" />
-          <button class="send-btn" onclick="handleTextSubmit()" aria-label="Send">➤</button>
-        </div>
-
-        <!-- Examples -->
-        <div class="examples-label" id="examples-label">أمثلة شائعة</div>
-        <div class="examples-grid" id="examples"></div>
-
-        <div class="disclaimer" id="home-disclaimer">
-          هذه معلومات قانونية عامة فقط. يُرجى استشارة محامٍ مختص.
-        </div>
-      </div>
-    </div>
-
-    <!-- ── CHAT ── -->
-    <div class="screen chat-screen" id="screen-chat">
-      <div class="chat-messages" id="chat-messages">
-        <div class="empty-state">
-          <span class="icon">💬</span>
-          <div id="no-chats-text">لا توجد محادثات بعد</div>
-          <div id="no-chats-sub" style="margin-top:4px;font-size:12px">اضغط على زر الميكروفون للبدء</div>
-        </div>
-      </div>
-      <div class="disclaimer-fixed disclaimer">
-        هذه معلومات قانونية عامة فقط. يُرجى استشارة محامٍ مختص.
-      </div>
-    </div>
-
-    <!-- ── DEMO / TEST SCENARIOS ── -->
-    <div class="screen demo-screen" id="screen-demo">
-      <div class="demo-header">
-        <div class="demo-header-top">
-          <span class="demo-icon-big">🧪</span>
-          <div>
-            <div class="demo-title" id="demo-title">سيناريوهات اختبارية</div>
-            <div class="demo-subtitle" id="demo-subtitle">بيانات حقيقية من القانون الأساسي الفلسطيني</div>
-          </div>
-        </div>
-      </div>
-      <div id="demo-scenarios"></div>
-    </div>
-
-    <!-- ── HELP ── -->
-    <div class="screen help-screen" id="screen-help">
-      <div class="call-banner" onclick="window.open('tel:+970-2-295-4646')">
-        <span class="call-icon">📞</span>
-        <div>
-          <div class="call-text" id="call-title">اتصل بمساعدة قانونية</div>
-          <div class="call-sub" id="call-sub">تواصل مع أقرب مركز مساعدة قانونية</div>
-        </div>
-      </div>
-
-      <div class="section-title" id="nearby-title">مراكز مساعدة قريبة</div>
-      <div id="help-map"></div>
-      <div id="clinics-list"></div>
-
-      <div class="disclaimer" style="margin-top:16px">
-        هذه معلومات قانونية عامة فقط. يُرجى استشارة محامٍ مختص.
-      </div>
-    </div>
+  <!-- Ornament -->
+  <div class="ornament">
+    <div class="orn-line"></div>
+    <span class="orn-txt" id="orn">مساعد قانوني ذكي</span>
+    <div class="orn-line r"></div>
   </div>
 
-  <!-- ══════ BOTTOM NAV ══════ -->
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
-      <span class="nav-icon">🏠</span>
-      <span id="nav-home-label">الرئيسية</span>
-    </button>
-    <button class="nav-item" data-tab="chat" onclick="switchTab('chat')">
-      <span class="nav-icon">💬</span>
-      <span id="nav-chat-label">المحادثات</span>
-    </button>
-    <button class="nav-item" data-tab="demo" onclick="switchTab('demo')">
-      <span class="nav-icon">🧪</span>
-      <span id="nav-demo-label">اختبار</span>
-    </button>
-    <button class="nav-item" data-tab="help" onclick="switchTab('help')">
-      <span class="nav-icon">🆘</span>
-      <span id="nav-help-label">المساعدة</span>
-    </button>
-  </nav>
+  <!-- Title -->
+  <h1 class="hero-title">PalJustice AI <span class="hero-flag">🇵🇸</span></h1>
+  <p class="hero-sub" id="sub">افهم حقوقك القانونية فوراً — بالعربية والإنجليزية</p>
 
-  <!-- Scripts -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="/static/app.js"></script>
+  <!-- Stats pills -->
+  <div class="pills">
+    <span class="pill" id="p1">⚖️ 72 مادة قانونية</span>
+    <span class="pill" id="p2">📚 مصدران قانونيان</span>
+    <span class="pill" id="p3">🏛️ 7 مراكز مساعدة</span>
+    <span class="pill" id="p4">🌐 عربي · English</span>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card">
+
+    <!-- Mic -->
+    <div class="mic-section">
+      <div class="mic-wrap" id="mw">
+        <div class="mic-ring"></div>
+        <div class="mic-ring"></div>
+        <div class="mic-ring"></div>
+        <button class="mic-btn" id="mic" onclick="toggleRec()">🎤</button>
+      </div>
+      <div class="waveform" id="waveform">
+        <div class="wv-bar"></div><div class="wv-bar"></div><div class="wv-bar"></div>
+        <div class="wv-bar"></div><div class="wv-bar"></div>
+      </div>
+      <span class="mic-lbl" id="mlbl">احكي مشكلتك</span>
+    </div>
+
+    <!-- Live transcription -->
+    <div class="transcription" id="trans"></div>
+
+    <!-- Divider -->
+    <div class="divider"><span class="div-txt" id="or">أو اكتب سؤالك</span></div>
+
+    <!-- Text input -->
+    <div class="input-row">
+      <input class="txt-input" id="inp" type="text"
+        placeholder="اكتب مشكلتك القانونية هنا..."
+        onkeydown="if(event.key==='Enter')go()" />
+      <button class="send-btn" onclick="go()">➤</button>
+    </div>
+
+    <!-- Examples -->
+    <div class="ex-lbl" id="exlbl">أمثلة شائعة</div>
+    <div class="examples" id="chips"></div>
+
+  </div><!-- /card -->
+
+  <!-- Response zone -->
+  <div class="response-zone">
+    <div class="loading-card" id="lcard">
+      <div class="spinner"></div>
+      <span class="load-txt" id="ltxt">جارٍ تحليل وضعك القانوني...</span>
+    </div>
+    <div class="res-card" id="rcard"></div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disc" id="disc">
+    <strong>تنبيه:</strong> هذه معلومات قانونية عامة فقط. استشر محامياً مرخصاً لوضعك الخاص.
+  </div>
+
+</main>
+</div><!-- /shell -->
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════════ */
+const API = '';          // empty = same origin (FastAPI on :8000)
+const MOCK_FALLBACK = true; // use mock when API unreachable
+
+/* ═══════════════════════════════════════════════
+   i18n
+   ═══════════════════════════════════════════════ */
+const TX = {
+  ar:{
+    orn:'مساعد قانوني ذكي', sub:'افهم حقوقك القانونية فوراً — بالعربية والإنجليزية',
+    p1:'⚖️ 72 مادة قانونية', p2:'📚 مصدران قانونيان', p3:'🏛️ 7 مراكز مساعدة', p4:'🌐 عربي · English',
+    mlbl:'احكي مشكلتك', mstop:'اضغط للإيقاف', or:'أو اكتب سؤالك',
+    ph:'اكتب مشكلتك القانونية هنا...', exlbl:'أمثلة شائعة',
+    ltxt:'جارٍ تحليل وضعك القانوني...', lang:'EN', live:'الذكاء الاصطناعي متصل',
+    disc:'<strong>تنبيه:</strong> هذه معلومات قانونية عامة فقط. استشر محامياً مرخصاً لوضعك الخاص.',
+    plan:'خطة العمل', srcs:'المصادر القانونية', trans:'جارٍ تحويل الصوت...',
+    vSrc:'📜 المصدر القانوني', copy:'📋 نسخ', share:'↗ مشاركة',
+    histTitle:'السجل', histEmpty:'لا يوجد سجل بعد', histClear:'🗑 مسح السجل',
+    chips:[
+      'أخبرني صاحب البيت بالإخلاء شفهياً خلال 3 أيام',
+      'اعتقلت الشرطة أخي بدون مذكرة',
+      'فصلني صاحب العمل دون إشعار مسبق',
+      'لا أستطيع تسجيل أطفالي في المدرسة',
+    ],
+  },
+  en:{
+    orn:'AI LEGAL ASSISTANT', sub:'Understand your legal rights instantly — in Arabic & English',
+    p1:'⚖️ 72 Legal Articles', p2:'📚 2 Legal Sources', p3:'🏛️ 7 Aid Centers', p4:'🌐 Arabic · English',
+    mlbl:'Speak your problem', mstop:'Tap to stop', or:'or type your question',
+    ph:'Describe your legal problem here...', exlbl:'Common examples',
+    ltxt:'Analysing your legal situation...', lang:'عربي', live:'AI Online',
+    disc:'<strong>Notice:</strong> This is general legal information only. Consult a licensed Palestinian lawyer for your specific situation.',
+    plan:'Action Plan', srcs:'Legal Sources', trans:'Transcribing audio...',
+    vSrc:'📜 Legal Source', copy:'📋 Copy', share:'↗ Share',
+    histTitle:'History', histEmpty:'No history yet', histClear:'🗑 Clear history',
+    chips:[
+      'My landlord verbally told me to leave in 3 days',
+      'Police arrested my brother without a warrant',
+      'My employer fired me without notice',
+      'I cannot enrol my children in school',
+    ],
+  },
+};
+
+/* ═══════════════════════════════════════════════
+   MOCK RESPONSES
+   ═══════════════════════════════════════════════ */
+const MOCK = {
+  ar:{
+    eviction:{
+      triage:{color:'amber',label:'عاجل — تصرف خلال 7 أيام',deadline_hint:'خلال 7 أيام: اجمع الأدلة وتواصل مع محامٍ'},
+      answer:'بموجب المادة (17) من القانون الأساسي الفلسطيني، لا يجوز الإخلاء إلا بأمر قضائي. الإنذار الشفهي باطل قانوناً، والمستأجر يحتفظ بحقه الكامل في الإقامة حتى صدور حكم قضائي نهائي. أي إجراء خارج نطاق القضاء يُعدّ انتهاكاً صريحاً للمادتين 21 و23.',
+      action_plan:[
+        {timeframe:'الآن',        action:'لا تغادر — الإنذار الشفهي لا قيمة قانونية له'},
+        {timeframe:'اليوم',       action:'التقط صوراً لأي إشعارات مكتوبة وحفظها'},
+        {timeframe:'هذا الأسبوع', action:'أرسل رداً كتابياً مستنداً للمواد 17 و21 و23'},
+        {timeframe:'خلال 30 يوم', action:'قدّم شكوى قضائية عند وصول إشعار رسمي'},
+      ],
+      sources:[
+        {article:'المادة 17 — القانون الأساسي',title:'حرمة المسكن',text:'لا يجوز تفتيش المساكن إلا بموجب أمر قضائي وفقاً للأحكام القانونية.'},
+        {article:'المادة 21 — القانون الأساسي',title:'الملكية الخاصة',text:'الملكية الخاصة مصونة، ولا يجوز نزع ملكية أي شخص إلا للمصلحة العامة وبتعويض عادل.'},
+        {article:'المادة 23 — القانون الأساسي',title:'حق التقاضي',text:'لكل مواطن حق اللجوء إلى القضاء بالطريقة التي يكفلها القانون.'},
+      ],
+      clinic:{name:'عيادة جامعة بيرزيت القانونية',city:'رام الله',phone:'+970-2-298-2960'},
+    },
+    criminal:{
+      triage:{color:'red',label:'حرج — تصرف فوراً',deadline_hint:'خلال ساعات: اتصل بمحامٍ ومنظمة حقوق الإنسان فوراً'},
+      answer:'قانون الإجراءات الجزائية رقم 3 لسنة 2001: المادة 29 تشترط أمراً من الجهة المختصة لأي اعتقال. المادة 34 تُوجب تقديم الموقوف للنيابة خلال 24 ساعة. المادة 97 تكفل حق الصمت الكامل ولا يُفسَّر كاعتراف. المادة 102 تكفل الاستعانة بمحامٍ خلال التحقيق. أي اعتراف بالإكراه باطل (المادة 214).',
+      action_plan:[
+        {timeframe:'الآن',          action:'التزم الصمت التام — المادة 97 تكفل ذلك ولا يُعدّ دليلاً'},
+        {timeframe:'الآن',          action:'اطلب محامياً فوراً — المادة 102 تكفل ذلك'},
+        {timeframe:'خلال 24 ساعة', action:'يجب تقديمه للنيابة خلال 24 ساعة (المادة 34)'},
+        {timeframe:'خلال 48 ساعة', action:'الاحتجاز يستلزم أمراً قضائياً — الحد الأقصى 45 يوماً (المادة 120)'},
+        {timeframe:'هذا الأسبوع',   action:'وثّق أي سوء معاملة — الاعتراف بالإكراه باطل (المادة 214 و273)'},
+      ],
+      sources:[
+        {article:'المادة 29 — ق. الإجراءات الجزائية 3/2001',title:'حظر الاعتقال بغير أمر',text:'لا يجوز اعتقال أي شخص أو سجنه إلا بأمر من الجهة المختصة وفق القانون. ويُعامَل كل موقوف معاملة تصون كرامته الإنسانية.'},
+        {article:'المادة 97 — ق. الإجراءات الجزائية 3/2001',title:'حق الصمت',text:'للمتهم الحق في الصمت وعدم الإجابة على الأسئلة. ولا يُفسَّر صمته بأي وجه كاعتراف بالتهمة.'},
+        {article:'المادة 102 — ق. الإجراءات الجزائية 3/2001',title:'حق التمثيل القانوني',text:'للمتهم الاستعانة بمحامٍ خلال التحقيق. وللمحامٍ الاطلاع على المحاضر السابقة وتقديم ملاحظاته.'},
+        {article:'المادة 11 — القانون الأساسي',title:'الحرية الشخصية',text:'الحرية الشخصية حق مكفول لكل إنسان، ولا يجوز القبض على أحد إلا وفق أحكام القانون.'},
+      ],
+      clinic:{name:'الحق — مركز حقوق الإنسان',city:'رام الله',phone:'+970-2-295-4646'},
+    },
+    labor:{
+      triage:{color:'green',label:'استشارة عامة — خلال 30 يوم',deadline_hint:'خلال 30 يوم: راجع المستندات واطلب استشارة قانونية'},
+      answer:'المادة 25 من القانون الأساسي تكفل حقوق العمال وتحظر الفصل التعسفي. يحق لك الحصول على مكافأة نهاية خدمة وفترة إشعار أو تعويض مالي عنها وفق قانون العمل الفلسطيني رقم 7 لسنة 2000. وزارة العمل هي الجهة المختصة لرفع الشكاوى.',
+      action_plan:[
+        {timeframe:'اليوم',         action:'احتفظ بالعقد وقسائم الراتب ورسالة الفصل'},
+        {timeframe:'هذا الأسبوع',   action:'اطلب قرار الفصل كتابياً مع الأسباب من صاحب العمل'},
+        {timeframe:'هذا الأسبوع',   action:'قدّم شكوى رسمية لوزارة العمل الفلسطينية'},
+        {timeframe:'خلال 30 يوم',   action:'استشر محامياً عمالياً لتقييم التعويض المستحق'},
+      ],
+      sources:[
+        {article:'المادة 25 — القانون الأساسي',title:'حقوق العمال',text:'يحدد القانون الحد الأدنى للأجور ويضمن نظام تأمين اجتماعي لحماية حقوق العمال.'},
+        {article:'المادة 26 — القانون الأساسي',title:'حرية العمل',text:'العمل حق ومسؤولية وشرف، وتسعى السلطة الوطنية لتوفير فرص العمل.'},
+      ],
+      clinic:{name:'عيادة جامعة بيرزيت القانونية',city:'رام الله',phone:'+970-2-298-2960'},
+    },
+    education:{
+      triage:{color:'green',label:'استشارة عامة — خلال 30 يوم',deadline_hint:'خلال 30 يوم: راجع أوراق التسجيل'},
+      answer:'المادة 24 من القانون الأساسي تكفل حق التعليم الأساسي المجاني لكل مواطن فلسطيني. رفض تسجيل الأطفال في المدارس الحكومية يُعدّ انتهاكاً صريحاً لهذا الحق.',
+      action_plan:[
+        {timeframe:'اليوم',       action:'احتفظ بوثائق رفض التسجيل المكتوبة'},
+        {timeframe:'هذا الأسبوع', action:'تقدّم بشكوى رسمية لمديرية التربية والتعليم'},
+        {timeframe:'خلال 30 يوم', action:'تواصل مع المدعي العام للأحداث إذا لزم الأمر'},
+      ],
+      sources:[
+        {article:'المادة 24 — القانون الأساسي',title:'حق التعليم',text:'التعليم حق مكفول، والتعليم الأساسي مجاني وإلزامي في مؤسسات السلطة الوطنية الفلسطينية.'},
+      ],
+      clinic:{name:'عيادة جامعة بيرزيت القانونية',city:'رام الله',phone:'+970-2-298-2960'},
+    },
+  },
+  en:{
+    eviction:{
+      triage:{color:'amber',label:'Urgent — act within 7 days',deadline_hint:'Within 7 days: gather evidence and contact a lawyer'},
+      answer:'Under Article 17 of the Palestinian Basic Law, no home can be entered or vacated without a court order. A verbal eviction notice has zero legal standing — the tenant retains the full right to remain until a final court ruling is issued.',
+      action_plan:[
+        {timeframe:'Now',         action:'Do NOT leave — verbal notice is legally void'},
+        {timeframe:'Today',       action:'Photograph all written notices and save messages'},
+        {timeframe:'This week',   action:'Send a written reply citing Articles 17, 21, and 23'},
+        {timeframe:'Within 30 d', action:'File a court complaint if formal notice arrives'},
+      ],
+      sources:[
+        {article:'Art. 17 — Basic Law',title:'Right to Home',text:'Homes may not be searched or entered except by judicial order according to legal provisions.'},
+        {article:'Art. 21 — Basic Law',title:'Private Property',text:'Private property is protected. No person may be dispossessed except for public good with fair compensation.'},
+        {article:'Art. 23 — Basic Law',title:'Right to Appeal',text:'Every citizen has the right to resort to the judiciary in the manner guaranteed by law.'},
+      ],
+      clinic:{name:'Birzeit University Legal Clinic',city:'Ramallah',phone:'+970-2-298-2960'},
+    },
+    criminal:{
+      triage:{color:'red',label:'Critical — act immediately',deadline_hint:'Within hours: call a lawyer and human rights org now'},
+      answer:'Under Penal Procedure Law No. 3/2001: Art. 29 requires a competent authority order for any arrest. Art. 34 requires the arrested person be brought before the Prosecutor within 24 hours. Art. 97 guarantees the absolute right to silence (silence ≠ admission). Art. 102 guarantees a lawyer during investigation. Any confession under coercion is void (Art. 214 & 273).',
+      action_plan:[
+        {timeframe:'Now',           action:'Stay completely silent — Art. 97 guarantees this right; silence cannot be used as evidence'},
+        {timeframe:'Now',           action:'Demand a lawyer immediately — Art. 102 (investigation) and Art. 244 (court-appointed for felonies)'},
+        {timeframe:'Within 24 hrs', action:'Must be brought before the Prosecutor within 24 hrs (Art. 34) — demand this if it has not happened'},
+        {timeframe:'Within 48 hrs', action:'Detention needs a court order — max 15 days (Art. 119), total max 45 days (Art. 120)'},
+        {timeframe:'This week',     action:'Document all mistreatment — any coerced confession is void under Art. 214 & 273'},
+      ],
+      sources:[
+        {article:'Art. 29 — Penal Procedure Law No. 3/2001',title:'No Arbitrary Arrest',text:'No person may be arrested or imprisoned except by order of the competent authority as set forth in the law. Every arrested person shall be treated with full human dignity.'},
+        {article:'Art. 97 — Penal Procedure Law No. 3/2001',title:'Right to Silence',text:'The accused shall have the right to remain silent. Silence may not be construed in any way as an admission of the charge.'},
+        {article:'Art. 102 — Penal Procedure Law No. 3/2001',title:'Right to Counsel',text:'The accused shall have the right to seek counsel during investigation. Counsel may review investigation minutes and submit observations.'},
+        {article:'Art. 11 — Basic Law',title:'Personal Freedom',text:'Personal freedom is a guaranteed right. No one may be arrested or detained except according to law.'},
+      ],
+      clinic:{name:'Al-Haq Human Rights Center',city:'Ramallah',phone:'+970-2-295-4646'},
+    },
+    labor:{
+      triage:{color:'green',label:'General inquiry — within 30 days',deadline_hint:'Within 30 days: review documents and seek legal counsel'},
+      answer:'Article 25 of the Palestinian Basic Law protects workers\' rights and prohibits arbitrary dismissal. You are entitled to end-of-service pay and notice period compensation under Palestinian Labour Law No. 7 of 2000. Filing with the Ministry of Labour is the first step.',
+      action_plan:[
+        {timeframe:'Today',       action:'Keep contract, payslips and termination notice'},
+        {timeframe:'This week',   action:'Request a written termination letter with reasons'},
+        {timeframe:'This week',   action:'File a formal complaint with the Ministry of Labour'},
+        {timeframe:'Within 30 d', action:'Consult a labour lawyer to assess compensation'},
+      ],
+      sources:[
+        {article:'Art. 25 — Basic Law',title:'Workers\' Rights',text:'The law sets a minimum wage and guarantees a social insurance system to protect workers.'},
+        {article:'Art. 26 — Basic Law',title:'Right to Work',text:'Work is a right, responsibility, and honour. The National Authority strives to provide employment for all.'},
+      ],
+      clinic:{name:'Birzeit University Legal Clinic',city:'Ramallah',phone:'+970-2-298-2960'},
+    },
+    education:{
+      triage:{color:'green',label:'General inquiry — within 30 days',deadline_hint:'Within 30 days: review enrolment documents'},
+      answer:'Article 24 of the Palestinian Basic Law guarantees the right to free basic education for every Palestinian citizen. Refusing to enrol children in public schools is a direct violation of this constitutional right.',
+      action_plan:[
+        {timeframe:'Today',       action:'Keep written proof of the enrolment refusal'},
+        {timeframe:'This week',   action:'File a formal complaint with the District Education Directorate'},
+        {timeframe:'Within 30 d', action:'Contact the Juvenile Public Prosecution if needed'},
+      ],
+      sources:[
+        {article:'Art. 24 — Basic Law',title:'Right to Education',text:'Education is a guaranteed right. Basic education is free and compulsory in Palestinian National Authority institutions.'},
+      ],
+      clinic:{name:'Birzeit University Legal Clinic',city:'Ramallah',phone:'+970-2-298-2960'},
+    },
+  },
+};
+
+/* ═══════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════ */
+let lang = 'ar';
+let recOn = false;
+let recog = null;
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) { recog = new SR(); recog.interimResults = true; recog.continuous = false; }
+
+/* ═══════════════════════════════════════════════
+   LANGUAGE
+   ═══════════════════════════════════════════════ */
+function toggleLang() {
+  lang = lang === 'ar' ? 'en' : 'ar';
+  document.body.classList.toggle('ltr', lang === 'en');
+  document.documentElement.dir  = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  paint();
+}
+
+function paint() {
+  const t = TX[lang];
+  $('orn').textContent   = t.orn;
+  $('sub').textContent   = t.sub;
+  $('p1').textContent    = t.p1;
+  $('p2').textContent    = t.p2;
+  $('p3').textContent    = t.p3;
+  $('p4').textContent    = t.p4;
+  $('mlbl').textContent  = recOn ? t.mstop : t.mlbl;
+  $('or').textContent    = t.or;
+  $('inp').placeholder   = t.ph;
+  $('exlbl').textContent = t.exlbl;
+  $('ltxt').textContent  = t.ltxt;
+  $('disc').innerHTML    = t.disc;
+  $('lang-btn').textContent = t.lang;
+  $('live-txt').textContent = t.live;
+  $('hist-title').textContent = t.histTitle;
+  $('hist-clear').textContent = t.histClear;
+  chips();
+  renderHistPanel();
+}
+
+function chips() {
+  const c = $('chips'); c.innerHTML = '';
+  TX[lang].chips.forEach(ex => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = ex;
+    b.onclick = () => { $('inp').value = ex; ask(ex); };
+    c.appendChild(b);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   RECORDING  (Web Speech API → Whisper fallback)
+   ═══════════════════════════════════════════════ */
+let mediaRec   = null;
+let audioChunks = [];
+
+function toggleRec() {
+  recOn ? stopRec() : startRec();
+}
+
+function startRec() {
+  recOn = true;
+  $('mw').classList.add('rec');
+  $('waveform').classList.add('on');
+  $('mic').textContent = '⏹';
+  $('mlbl').textContent = TX[lang].mstop;
+
+  if (recog) {
+    recog.lang           = lang === 'ar' ? 'ar-SA' : 'en-US';
+    recog.maxAlternatives = 1;
+    recog.onresult = e => {
+      let txt = '';
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      showTrans(txt);
+      if (e.results[e.results.length - 1].isFinal) { stopRec(); ask(txt); }
+    };
+    recog.onerror = e => {
+      if (e.error === 'network' || e.error === 'service-not-allowed') {
+        // Google servers unreachable — silently fall back to local Whisper
+        recog.onend = null;
+        try { recog.stop(); } catch(_) {}
+        startWhisperRec();
+        return;
+      }
+      const msgs = {
+        'not-allowed':   lang==='ar' ? '❌ يرجى السماح بالوصول للميكروفون' : '❌ Allow microphone access in browser settings',
+        'no-speech':     lang==='ar' ? '🎤 لم يُكتشف صوت — حاول مرة أخرى'  : '🎤 No speech detected — try again',
+        'audio-capture': lang==='ar' ? '❌ لا يوجد ميكروفون متاح'            : '❌ No microphone found',
+      };
+      const m = msgs[e.error] || (lang==='ar' ? '⚠️ خطأ — جارٍ التبديل لوضع Whisper' : '⚠️ Error — switching to Whisper mode');
+      showTrans(m);
+      setTimeout(hideTrans, 3000);
+      stopRec();
+    };
+    recog.onend = () => { if (recOn) stopRec(); };
+    try {
+      recog.start();
+      showTrans(lang==='ar' ? '🎤 جارٍ الاستماع...' : '🎤 Listening...');
+    } catch(_) {
+      startWhisperRec();
+    }
+  } else {
+    startWhisperRec();
+  }
+}
+
+async function startWhisperRec() {
+  showTrans(lang==='ar' ? '🎤 جارٍ التسجيل (Whisper)...' : '🎤 Recording via Whisper...');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks  = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRec = new MediaRecorder(stream, { mimeType });
+    mediaRec.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      showTrans(lang==='ar' ? '⏳ جارٍ تحليل الصوت...' : '⏳ Transcribing audio...');
+      try {
+        const blob = new Blob(audioChunks, { type: mimeType });
+        const fd   = new FormData();
+        fd.append('audio', blob, 'rec.webm');
+        fd.append('language', lang === 'ar' ? 'ar' : 'en');
+        const r = await fetch(`${API}/transcribe`, {
+          method:'POST', body:fd,
+          signal: AbortSignal.timeout(25000),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          const txt = (d.text || '').trim();
+          if (txt) { showTrans(txt); setTimeout(() => { hideTrans(); ask(txt); }, 500); }
+          else { showTrans(lang==='ar' ? '🎤 لم يُكتشف كلام' : '🎤 No speech detected'); setTimeout(hideTrans,2500); }
+        } else {
+          showTrans(lang==='ar' ? '❌ فشل التحويل — اكتب سؤالك بدلاً من ذلك' : '❌ Transcription failed — please type instead');
+          setTimeout(hideTrans, 3500);
+        }
+      } catch(err) {
+        showTrans(lang==='ar' ? '❌ الخادم غير متاح — اكتب سؤالك' : '❌ Server unavailable — please type instead');
+        setTimeout(hideTrans, 3500);
+      }
+      stopRec();
+    };
+    mediaRec.start();
+  } catch(err) {
+    const msg = err.name === 'NotAllowedError'
+      ? (lang==='ar' ? '❌ يرجى السماح بالوصول للميكروفون' : '❌ Allow microphone access')
+      : (lang==='ar' ? '❌ تعذّر الوصول للميكروفون' : '❌ Cannot access microphone');
+    showTrans(msg);
+    setTimeout(hideTrans, 3500);
+    stopRec();
+  }
+}
+
+function stopRec() {
+  recOn = false;
+  $('mw').classList.remove('rec');
+  $('waveform').classList.remove('on');
+  $('mic').textContent = '🎤';
+  $('mlbl').textContent = TX[lang].mlbl;
+  if (recog) try { recog.stop(); } catch(_) {}
+  if (mediaRec && mediaRec.state !== 'inactive') try { mediaRec.stop(); } catch(_) {}
+  mediaRec = null;
+}
+function showTrans(t) { const el=$('trans'); el.textContent=t; el.classList.add('on'); }
+function hideTrans()   { $('trans').classList.remove('on'); }
+
+/* ═══════════════════════════════════════════════
+   SUBMIT
+   ═══════════════════════════════════════════════ */
+function go() {
+  const v = $('inp').value.trim();
+  if (v) { ask(v); $('inp').value = ''; }
+}
+
+async function ask(q) {
+  if (!q || !q.trim()) return;
+  setLoad(true);
+  hideRes();
+
+  // Try real API first
+  if (!MOCK_FALLBACK) {
+    const d = await callAPI(q);
+    if (d) { setLoad(false); render(q, d); return; }
+  } else {
+    try {
+      const d = await callAPI(q);
+      if (d) { setLoad(false); render(q, d); return; }
+    } catch(e) {}
+  }
+
+  // Mock fallback
+  await new Promise(r => setTimeout(r, 1400 + Math.random()*600));
+  setLoad(false);
+  render(q, pickMock(q));
+}
+
+async function callAPI(q) {
+  const r = await fetch(`${API}/ask`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ question:q, language:lang, top_k:3 }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!r.ok) throw new Error('API error');
+  const d = await r.json();
+  return {
+    triage:      d.triage,
+    answer:      d.answer,
+    action_plan: d.action_plan || [],
+    sources:     d.sources     || [],
+    clinic:      (d.clinics    || [])[0] || null,
+  };
+}
+
+function pickMock(q) {
+  const lq = q.toLowerCase();
+  const m  = MOCK[lang] || MOCK.ar;
+  if (/arrest|detain|police|warrant|اعتقل|شرطة|مذكرة|احتجز/.test(lq)) return m.criminal;
+  if (/school|educat|مدرسة|تعليم|تسجيل/.test(lq))                       return m.education;
+  if (/fire|dismiss|salary|work|labor|فصل|راتب|عمل/.test(lq))            return m.labor;
+  return m.eviction;
+}
+
+/* ═══════════════════════════════════════════════
+   LOADING / HIDE
+   ═══════════════════════════════════════════════ */
+function setLoad(on) { $('lcard').classList.toggle('on', on); }
+function hideRes()   { $('rcard').classList.remove('on'); }
+
+/* ═══════════════════════════════════════════════
+   RENDER RESPONSE
+   ═══════════════════════════════════════════════ */
+function render(q, d) {
+  const t  = TX[lang];
+  const tr = d.triage || { color:'green', label:'General', deadline_hint:'' };
+  const dot= {red:'🔴',amber:'🟡',green:'🟢'}[tr.color]||'🟢';
+
+  let h = '';
+
+  // Badge + deadline
+  h += `<div class="badge ${tr.color}">${dot} ${x(tr.label)}</div>`;
+  if (tr.deadline_hint) h += `<div class="deadline">${x(tr.deadline_hint)}</div>`;
+
+  // Question echo
+  h += `<div class="res-q">"${x(q)}"</div>`;
+
+  // Answer
+  h += `<div class="res-ans">${x(d.answer)}</div>`;
+
+  // Action plan
+  if (d.action_plan?.length) {
+    h += `<div class="sec-lbl">${x(t.plan)}</div><div class="steps">`;
+    for (const s of d.action_plan)
+      h += `<div class="step"><span class="step-t">${x(s.timeframe)}</span><span class="step-a">${x(s.action)}</span></div>`;
+    h += '</div>';
+  }
+
+  // Legal sources
+  if (d.sources?.length) {
+    h += `<div class="sec-lbl">${x(t.srcs)}</div>`;
+    d.sources.forEach((s,i) => {
+      h += `<div class="src" onclick="this.querySelector('.src-hd').parentElement.classList.toggle('src-open')">
+        <div class="src-hd"><span>${x(s.article||'')} — ${x(s.title||'')}</span><span class="src-arr">▼</span></div>
+        <div class="src-body"><div class="src-txt">${x(s.text||'')}</div></div>
+      </div>`;
+    });
+  }
+
+  // Clinic
+  if (d.clinic) {
+    h += `<div class="clinic-box">
+      <span class="clinic-pin">📍</span>
+      <div>
+        <div class="clinic-nm">${x(d.clinic.name)}</div>
+        <div class="clinic-inf">${x(d.clinic.city)} · <a href="tel:${x(d.clinic.phone)}">${x(d.clinic.phone)}</a></div>
+      </div>
+    </div>`;
+  }
+
+  // Buttons
+  h += `<div class="res-btns">
+    <button class="res-btn" onclick="openSrcs()">${t.vSrc}</button>
+    <button class="res-btn" onclick="copyAns()">${t.copy}</button>
+    <button class="res-btn" onclick="shareAns()">${t.share}</button>
+  </div>`;
+
+  const card = $('rcard');
+  card.innerHTML = h;
+  card.classList.add('on');
+  card._data = d;
+  card._q    = q;
+  setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 80);
+  saveHist(q, d);
+}
+
+function copyAns() {
+  const card = $('rcard');
+  const ans  = card._data?.answer || '';
+  const q    = card._q || '';
+  const txt  = `Q: ${q}\n\n${ans}`;
+  navigator.clipboard?.writeText(txt).then(() => {
+    const btn = document.querySelector('.res-btns .res-btn:nth-child(2)');
+    if (btn) { const old=btn.textContent; btn.textContent='✅'; setTimeout(()=>btn.textContent=old,1600); }
+  }).catch(()=>{});
+}
+
+function shareAns() {
+  const card = $('rcard');
+  const ans  = card._data?.answer || '';
+  const q    = card._q || '';
+  if (navigator.share) {
+    navigator.share({ title:'PalJustice AI', text:`${q}\n\n${ans}` }).catch(()=>{});
+  } else {
+    copyAns();
+  }
+}
+
+function openSrcs() {
+  document.querySelectorAll('.src').forEach(s => s.classList.add('src-open'));
+}
+
+function x(s) {
+  const el = document.createElement('span');
+  el.textContent = s||'';
+  return el.innerHTML;
+}
+
+/* ═══════════════════════════════════════════════
+   HISTORY
+   ═══════════════════════════════════════════════ */
+const HIST_KEY = 'paljustice_hist';
+
+function loadHist() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveHist(q, d) {
+  const hist = loadHist();
+  hist.unshift({ q, triage: d.triage, answer: d.answer, action_plan: d.action_plan, sources: d.sources, clinic: d.clinic, ts: Date.now() });
+  if (hist.length > 20) hist.length = 20;
+  localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+  renderHistPanel();
+}
+function clearHist() {
+  localStorage.removeItem(HIST_KEY);
+  renderHistPanel();
+}
+function toggleHist() {
+  const panel   = $('hist-panel');
+  const overlay = $('hist-overlay');
+  const on      = panel.classList.toggle('on');
+  overlay.classList.toggle('on', on);
+  if (on) renderHistPanel();
+}
+function renderHistPanel() {
+  const list = $('hist-list');
+  if (!list) return;
+  const hist = loadHist();
+  const t    = TX[lang];
+  if (!hist.length) { list.innerHTML = `<div class="hist-empty">${x(t.histEmpty)}</div>`; return; }
+  list.innerHTML = hist.map((item, i) => {
+    const tr   = item.triage || { color:'green', label:'' };
+    const time = new Date(item.ts).toLocaleTimeString(lang==='ar' ? 'ar' : 'en', { hour:'2-digit', minute:'2-digit' });
+    return `<div class="hist-item" onclick="replayHist(${i})">
+      <div class="hist-q">${x(item.q)}</div>
+      <div class="hist-meta">
+        <span class="hist-badge ${x(tr.color)}">${x(tr.label)}</span>
+        <span class="hist-time">${time}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function replayHist(i) {
+  const hist = loadHist();
+  const item = hist[i];
+  if (!item) return;
+  toggleHist();
+  $('inp').value = item.q;
+  render(item.q, { triage: item.triage, answer: item.answer, action_plan: item.action_plan, sources: item.sources, clinic: item.clinic });
+}
+
+/* ═══════════════════════════════════════════════
+   PARTICLE STARS (canvas)
+   ═══════════════════════════════════════════════ */
+(function() {
+  const cv = document.getElementById('stars');
+  const cx = cv.getContext('2d');
+  let W, H, pts = [];
+
+  function resize() {
+    W = cv.width  = innerWidth;
+    H = cv.height = innerHeight;
+    pts = [];
+    const n = Math.floor(W * H / 14000);
+    for (let i = 0; i < n; i++) pts.push({
+      x:  Math.random() * W,
+      y:  Math.random() * H,
+      r:  Math.random() * 1.1 + 0.2,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      a:  Math.random() * 0.45 + 0.08,
+    });
+  }
+
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    for (const p of pts) {
+      cx.beginPath();
+      cx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      cx.fillStyle = `rgba(201,168,76,${p.a})`;
+      cx.fill();
+      p.x = (p.x + p.vx + W) % W;
+      p.y = (p.y + p.vy + H) % H;
+    }
+    requestAnimationFrame(draw);
+  }
+
+  addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+/* ═══════════════════════════════════════════════
+   UTIL
+   ═══════════════════════════════════════════════ */
+function $(id) { return document.getElementById(id); }
+
+/* ═══════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', paint);
+</script>
 </body>
 </html>

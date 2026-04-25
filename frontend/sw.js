@@ -2,7 +2,7 @@
 // /ask responses when offline. Connectivity is unreliable in much of the
 // West Bank and Gaza — the app must keep working without it.
 
-const CACHE = "legal-aid-v1";
+const CACHE = "paljustice-v2";
 const SHELL = [
   "/",
   "/manifest.json",
