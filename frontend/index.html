@@ -1,671 +1,1362 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f1419" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#1B4332" />
   <link rel="manifest" href="/manifest.json" />
-  <title>AI Legal Aid — Palestine</title>
+  <title>المساعد القانوني الفلسطيني</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    /* ── Design tokens ─────────────────────────────────────────── */
     :root {
-      --bg: #0f1419;
-      --panel: #1a2028;
-      --ink: #e6eaf0;
-      --muted: #8a94a6;
-      --accent: #6ee7b7;
-      --accent-dark: #34d399;
-      --danger: #f87171;
-      --warn: #fbbf24;
-      --ok: #6ee7b7;
-      --border: #2c3642;
+      --g9: #1B4332;
+      --g8: #2D6A4F;
+      --g7: #40916C;
+      --g5: #74C69D;
+      --g2: #B7E4C7;
+      --g1: #D8F3DC;
+      --g0: #F0FBF4;
+
+      --bg:     #F7F3EC;
+      --card:   #FFFFFF;
+      --border: #E4DBD0;
+      --shadow: 0 2px 12px rgba(0,0,0,0.07);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+
+      --ink:   #1A1A2E;
+      --ink-2: #4A5568;
+      --ink-3: #8A9BB0;
+
+      --user-bg:     #DCF8C6;
+      --user-border: #B8E6A0;
+      --ai-bg:       #FFFFFF;
+      --ai-border:   #E4DBD0;
+
+      --red:   #DC2626;
+      --amber: #D97706;
+
+      --hdr: 60px;
+      --nav: 66px;
+      --ease: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+      --font-ar: 'Cairo', 'Noto Naskh Arabic', system-ui, sans-serif;
+      --font-en: 'Inter', system-ui, sans-serif;
+      --font: var(--font-ar);
     }
-    * { box-sizing: border-box; }
+
+    /* ── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
     body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Naskh Arabic", system-ui, sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--ink);
-      min-height: 100vh;
-    }
-    body.rtl { direction: rtl; }
-    header {
-      padding: 24px 32px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    header h1 { margin: 0; font-size: 20px; font-weight: 600; }
-    header .sub { color: var(--muted); font-size: 13px; }
-    main {
-      max-width: 900px;
+      min-height: 100dvh;
+      max-width: 480px;
       margin: 0 auto;
-      padding: 32px 24px 64px;
+      position: relative;
+      overflow-x: hidden;
     }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
+    button { font-family: var(--font); cursor: pointer; border: none; }
+    input, textarea { font-family: var(--font); }
+    img { display: block; max-width: 100%; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .hdr {
+      position: fixed; top: 0;
+      left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      height: var(--hdr);
+      background: var(--g9);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      z-index: 200;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    textarea {
+    .hdr-brand { display: flex; align-items: center; gap: 10px; }
+    .hdr-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .hdr-text-title {
+      color: #fff; font-size: 16px; font-weight: 700; line-height: 1.2;
+    }
+    .hdr-text-sub {
+      color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 400;
+    }
+    .lang-btn {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px; font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.04em;
+      transition: background var(--ease);
+      flex-shrink: 0;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── Layout shell ───────────────────────────────────────────── */
+    .main {
+      padding-top: var(--hdr);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .screen {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .screen.active { display: block; }
+    .chat-screen.active {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Bottom nav ─────────────────────────────────────────────── */
+    .bottom-nav {
+      height: var(--nav);
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      flex-shrink: 0;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px;
+      background: transparent;
+      color: var(--ink-3);
+      border: none;
+      transition: color var(--ease);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item.active { color: var(--g8); }
+    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-label { font-size: 11px; font-weight: 600; }
+
+    /* ── HOME screen ────────────────────────────────────────────── */
+    .home-screen { padding: 20px 16px 24px; }
+
+    .welcome-card {
+      background: linear-gradient(135deg, var(--g9) 0%, var(--g8) 100%);
+      border-radius: 20px;
+      padding: 22px 20px;
+      margin-bottom: 24px;
+      color: #fff;
+    }
+    html[dir="rtl"] .welcome-card { text-align: right; }
+    html[dir="ltr"] .welcome-card { text-align: left; }
+    .welcome-card h2 { font-size: 19px; font-weight: 700; margin-bottom: 7px; }
+    .welcome-card p  { font-size: 13px; opacity: 0.82; line-height: 1.65; }
+
+    /* Mic section */
+    .mic-section {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0 24px;
+    }
+    .mic-label {
+      font-size: 18px; font-weight: 700;
+      color: var(--ink); margin-bottom: 24px; text-align: center;
+    }
+    .mic-wrap { position: relative; margin-bottom: 16px; }
+
+    /* Pulse rings */
+    .ring {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 2.5px solid var(--g5);
+      opacity: 0; pointer-events: none;
+    }
+    .ring:nth-child(1) { width: 108px; height: 108px; }
+    .ring:nth-child(2) { width: 140px; height: 140px; }
+    .ring:nth-child(3) { width: 172px; height: 172px; }
+    .mic-btn.on .ring { animation: pulse 1.6s ease-out infinite; }
+    .mic-btn.on .ring:nth-child(2) { animation-delay: 0.3s; }
+    .mic-btn.on .ring:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes pulse {
+      0%   { transform: translate(-50%,-50%) scale(0.85); opacity: 0.65; }
+      100% { transform: translate(-50%,-50%) scale(1.5);  opacity: 0; }
+    }
+
+    .mic-btn {
+      position: relative; z-index: 1;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: var(--g9);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 24px rgba(27,67,50,0.38);
+      transition: all 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mic-btn:hover  { transform: scale(1.05); box-shadow: 0 8px 28px rgba(27,67,50,0.48); }
+    .mic-btn:active { transform: scale(0.96); }
+    .mic-btn.on     { background: var(--red); box-shadow: 0 6px 24px rgba(220,38,38,0.4); }
+    .mic-btn svg    { width: 38px; height: 38px; fill: #fff; }
+
+    .mic-status {
+      font-size: 13px; color: var(--ink-3); text-align: center; min-height: 20px;
+    }
+    .mic-status.go    { color: var(--g7); font-weight: 600; }
+    .mic-status.rec   { color: var(--red); font-weight: 600; }
+
+    .live-tx {
       width: 100%;
-      min-height: 90px;
-      background: #0c1117;
+      background: var(--card);
+      border: 1.5px solid var(--g2);
+      border-radius: 14px;
+      padding: 14px 16px;
+      min-height: 58px;
+      font-size: 15px; line-height: 1.6;
       color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 15px;
-      font-family: inherit;
-      resize: vertical;
+      display: none; margin-top: 14px;
     }
-    body.rtl textarea { text-align: right; }
-    button {
-      background: var(--accent);
-      color: #0c1117;
-      border: 0;
+    html[dir="rtl"] .live-tx { text-align: right; }
+    html[dir="ltr"] .live-tx { text-align: left; }
+    .live-tx.show { display: block; }
+
+    /* Example chips */
+    .section-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--ink-3);
+      margin-bottom: 10px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--card); border: 1.5px solid var(--border);
+      color: var(--ink-2); padding: 8px 14px; border-radius: 22px;
+      font-size: 13px; transition: all var(--ease);
+    }
+    .chip:hover { border-color: var(--g7); color: var(--g8); background: var(--g0); }
+
+    /* Disclaimer */
+    .disc {
+      background: #FFFBE6; border: 1px solid #F6D860;
+      border-radius: 12px; padding: 12px 14px;
+      margin-top: 20px;
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; color: #7A5C00; line-height: 1.55;
+    }
+    .disc-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── CHAT screen ────────────────────────────────────────────── */
+    .chat-msgs {
+      flex: 1; overflow-y: auto;
+      padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 12px;
+      overscroll-behavior: contain;
+    }
+    .empty-chat {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 20px; text-align: center;
+      color: var(--ink-3);
+    }
+    .empty-chat .e-icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-chat p { font-size: 14px; line-height: 1.65; }
+
+    /* Message rows */
+    .msg { display: flex; align-items: flex-end; gap: 8px; max-width: 90%; }
+    html[dir="rtl"] .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    html[dir="rtl"] .msg.ai   { align-self: flex-start; }
+    html[dir="ltr"]  .msg.user { align-self: flex-end; }
+    html[dir="ltr"]  .msg.ai   { align-self: flex-start; flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .msg.user .avatar { background: var(--g2); }
+    .msg.ai   .avatar { background: var(--g1); }
+
+    /* Bubble */
+    .bbl {
+      padding: 11px 14px;
+      font-size: 14px; line-height: 1.65;
+      max-width: 100%;
+    }
+    .msg.user .bbl {
+      background: var(--user-bg);
+      border: 1px solid var(--user-border);
+    }
+    html[dir="rtl"] .msg.user .bbl { border-radius: 18px 4px 18px 18px; }
+    html[dir="ltr"]  .msg.user .bbl { border-radius: 4px 18px 18px 18px; }
+
+    .msg.ai .bbl {
+      background: var(--ai-bg);
+      border: 1px solid var(--ai-border);
+      box-shadow: var(--shadow);
+    }
+    html[dir="rtl"] .msg.ai .bbl { border-radius: 4px 18px 18px 18px; }
+    html[dir="ltr"]  .msg.ai .bbl { border-radius: 18px 4px 18px 18px; }
+
+    /* Triage badge */
+    .tr-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 700;
+      margin-bottom: 9px;
+    }
+    .tr-badge::before { content: "●"; }
+    .tr-badge.red   { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+    .tr-badge.amber { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+    .tr-badge.green { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+
+    /* Rights highlight bar */
+    .rh {
+      background: var(--g0);
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 13px; font-weight: 600;
+      color: var(--g9);
+      display: flex; align-items: center; gap: 6px;
+    }
+    html[dir="rtl"] .rh { border-right: 3px solid var(--g7); }
+    html[dir="ltr"]  .rh { border-left:  3px solid var(--g7); }
+
+    /* Action steps inside bubble */
+    .steps { list-style: none; margin: 10px 0 4px; }
+    .step {
+      display: flex; gap: 8px;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .step:last-child { border-bottom: 0; }
+    .step-when { color: var(--g7); font-weight: 700; font-size: 12px; min-width: 76px; padding-top: 1px; flex-shrink: 0; }
+    .step-act  { color: var(--ink-2); line-height: 1.5; }
+
+    /* Expandable legal card */
+    .law-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden; margin-top: 8px;
+    }
+    .law-hdr {
+      padding: 9px 13px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; font-size: 13px; font-weight: 700; color: var(--g8);
+    }
+    .law-chev { transition: transform 0.2s; font-size: 12px; }
+    .law-card.open .law-chev { transform: rotate(180deg); }
+    .law-body {
+      display: none; padding: 10px 13px;
+      font-size: 13px; color: var(--ink-2); line-height: 1.7;
+      border-top: 1px solid var(--border);
+    }
+    .law-card.open .law-body { display: block; }
+
+    /* Bubble action buttons */
+    .bbl-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .bbl-btn {
+      background: transparent;
+      border: 1.5px solid var(--g7);
+      color: var(--g8);
+      padding: 6px 12px; border-radius: 22px;
+      font-size: 12px; font-weight: 700;
+      transition: all var(--ease);
+    }
+    .bbl-btn:hover { background: var(--g0); }
+    .bbl-btn.pri { background: var(--g9); color: #fff; border-color: var(--g9); }
+    .bbl-btn.pri:hover { background: var(--g8); }
+
+    /* Loading dots */
+    .bbl.ld { display: flex; align-items: center; gap: 5px; padding: 14px 18px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--g5); animation: blink 1.1s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.18s; }
+    .dot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes blink { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+    /* Chat input bar */
+    .chat-input-bar {
+      padding: 8px 12px 10px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: flex-end;
+      padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+      flex-shrink: 0;
+    }
+    .c-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
       padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover { background: var(--accent-dark); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.secondary {
-      background: transparent;
+      font-size: 14px; line-height: 1.4;
       color: var(--ink);
-      border: 1px solid var(--border);
+      resize: none; outline: none;
+      max-height: 110px; overflow-y: auto;
     }
-    button.record { background: var(--danger); color: white; }
-    button.record.on { background: #dc2626; animation: pulse 1.2s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
-    select, input[type="text"] {
-      background: #0c1117;
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 14px;
+    html[dir="rtl"] .c-input { text-align: right; }
+    html[dir="ltr"]  .c-input { text-align: left;  }
+    .c-input:focus { border-color: var(--g7); }
+    .c-input::placeholder { color: var(--ink-3); }
+
+    .icon-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all var(--ease);
     }
-    .answer {
-      background: #0c1117;
+    .mic-chat-btn { background: var(--g1); color: var(--g9); }
+    .mic-chat-btn:hover { background: var(--g2); }
+    .mic-chat-btn.on { background: #FEE2E2; color: var(--red); animation: mic-pulse 1s infinite; }
+    @keyframes mic-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+    .send-btn { background: var(--g9); color: #fff; }
+    .send-btn:hover { background: var(--g8); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── DOCUMENTS screen ────────────────────────────────────────── */
+    .docs-screen { padding: 20px 16px 24px; }
+    .screen-ttl { font-size: 19px; font-weight: 800; color: var(--ink); margin-bottom: 16px; }
+
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
       padding: 16px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      line-height: 1.55;
-      font-size: 15px;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 14px;
+      cursor: pointer;
+      transition: all var(--ease);
+      box-shadow: var(--shadow);
     }
-    .answer.rtl { direction: rtl; text-align: right; }
-    .sources { margin-top: 12px; }
-    .source {
-      background: #0c1117;
-      border-left: 3px solid var(--accent);
-      padding: 10px 14px;
-      margin: 8px 0;
-      border-radius: 4px;
-      font-size: 13px;
-      color: var(--muted);
+    .form-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .form-ico {
+      width: 50px; height: 50px; border-radius: 14px;
+      background: var(--g1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
     }
-    body.rtl .source { border-left: 0; border-right: 3px solid var(--accent); }
-    .source strong { color: var(--ink); display: block; margin-bottom: 4px; }
-    .clinic {
-      padding: 10px 12px;
+    .form-info { flex: 1; min-width: 0; }
+    .form-name { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+    .form-desc { font-size: 13px; color: var(--ink-3); }
+    .form-arr  { color: var(--ink-3); font-size: 20px; }
+
+    /* ── Modal (bottom sheet) ────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      display: none; align-items: flex-end; justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.open { display: flex; }
+    .sheet {
+      background: var(--card);
+      border-radius: 24px 24px 0 0;
+      padding: 10px 20px 32px;
+      width: 100%; max-width: 480px;
+      max-height: 88dvh;
+      overflow-y: auto;
+      animation: up 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-handle {
+      width: 42px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 8px auto 20px;
+    }
+    .sheet-title { font-size: 17px; font-weight: 800; margin-bottom: 18px; }
+
+    .field  { margin-bottom: 14px; }
+    .flabel { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+    .finput {
+      width: 100%; background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 14px;
+      font-size: 14px; color: var(--ink); outline: none;
+    }
+    .finput:focus { border-color: var(--g7); }
+    .finput.err   { border-color: var(--red) !important; }
+
+    .sheet-btn {
+      width: 100%; padding: 14px;
+      border-radius: 14px;
+      font-size: 15px; font-weight: 800;
+      transition: all var(--ease);
+    }
+    .sheet-btn.pri { background: var(--g9); color: #fff; margin-bottom: 10px; }
+    .sheet-btn.pri:hover { background: var(--g8); }
+    .sheet-btn.sec { background: transparent; color: var(--ink-2); border: 1.5px solid var(--border); }
+    .sheet-btn.sec:hover { background: var(--bg); }
+
+    /* ── HELP screen ─────────────────────────────────────────────── */
+    .help-screen { padding: 20px 16px 24px; }
+
+    .emer-banner {
+      background: linear-gradient(135deg, #B91C1C, #DC2626);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 14px;
+      cursor: pointer;
+      transition: opacity var(--ease);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .emer-banner:hover { opacity: 0.93; }
+    .emer-ico { font-size: 30px; }
+    .emer-text h3 { color: #fff; font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+    .emer-text p  { color: rgba(255,255,255,0.82); font-size: 13px; }
+
+    #help-map { height: 200px; border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
+
+    .clinic-card {
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    .clinic .name { font-weight: 600; }
-    .clinic .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
-    .tag {
-      display: inline-block;
-      background: var(--border);
-      color: var(--ink);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      margin: 0 4px 2px 0;
-    }
-    h2 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 8px; }
-    .status { font-size: 13px; color: var(--muted); margin-top: 6px; }
-    .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-    .example {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
       border-radius: 16px;
-      font-size: 12px;
-      cursor: pointer;
+      padding: 15px; margin-bottom: 12px;
+      box-shadow: var(--shadow);
     }
-    .example:hover { color: var(--ink); border-color: var(--accent); }
-    .disclaimer {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 12px;
-      padding: 10px;
-      border: 1px dashed var(--border);
-      border-radius: 6px;
+    .clinic-name { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+    .clinic-meta {
+      font-size: 13px; color: var(--ink-3);
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
     }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
+    .clinic-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .ctag {
+      background: var(--g0); color: var(--g8);
+      border: 1px solid var(--g2);
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600;
     }
-    .badge.red    { background: rgba(248,113,113,0.18); color: #fca5a5; border: 1px solid #7f1d1d; }
-    .badge.amber  { background: rgba(251,191,36,0.18); color: #fcd34d; border: 1px solid #78350f; }
-    .badge.green  { background: rgba(110,231,183,0.15); color: #6ee7b7; border: 1px solid #064e3b; }
-    .badge::before { content: "●"; }
-    .deadline { color: var(--muted); font-size: 13px; margin-top: 6px; }
-    .plan { list-style: none; padding: 0; margin: 0; }
-    .plan li {
-      display: grid;
-      grid-template-columns: 130px 1fr;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
+    .clinic-acts { display: flex; gap: 8px; }
+    .c-btn {
+      flex: 1; padding: 9px; border-radius: 11px;
+      font-size: 13px; font-weight: 700;
+      text-align: center; border: 1.5px solid;
+      transition: all var(--ease);
     }
-    .plan li:last-child { border-bottom: 0; }
-    body.rtl .plan li { grid-template-columns: 1fr 130px; }
-    .plan .when {
-      color: var(--accent);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    #map { height: 320px; border-radius: 12px; margin-top: 8px; }
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-    .pill {
-      display: inline-flex;
-      gap: 6px;
-      align-items: center;
-      background: transparent;
-      color: var(--ink);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .pill:hover { border-color: var(--accent); }
+    .c-btn.call { background: var(--g9); color: #fff; border-color: var(--g9); }
+    .c-btn.call:hover { background: var(--g8); }
+    .c-btn.dir  { background: transparent; color: var(--g8); border-color: var(--g7); }
+    .c-btn.dir:hover  { background: var(--g0); }
+
+    /* ── Scrollbar ───────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   </style>
 </head>
 <body>
-  <header>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════════════ -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-icon">⚖️</div>
     <div>
-      <h1 data-i18n="title">AI Legal Aid — Palestine</h1>
-      <div class="sub" data-i18n="subtitle">Palestinian Basic Law (2003, amended 2005)</div>
+      <div class="hdr-text-title" id="hdr-title">مساعد قانوني</div>
+      <div class="hdr-text-sub"   id="hdr-sub">القانون الأساسي الفلسطيني</div>
     </div>
-    <div class="row">
-      <label for="lang" class="sub" data-i18n="language">Language</label>
-      <select id="lang">
-        <option value="auto" data-i18n="auto_detect">Auto detect</option>
-        <option value="en">English</option>
-        <option value="ar">العربية</option>
-      </select>
-    </div>
-  </header>
+  </div>
+  <button class="lang-btn" id="lang-btn" onclick="toggleLang()">EN</button>
+</header>
 
-  <main>
-    <div class="card">
-      <label for="question" class="sub" data-i18n="describe">Describe your legal problem</label>
-      <textarea id="question" data-i18n-placeholder="placeholder"
-        placeholder="e.g. My landlord verbally told me I have 3 days to leave. What are my rights?"></textarea>
-      <div class="row" style="margin-top: 10px;">
-        <button id="ask" data-i18n="ask">Get legal guidance</button>
-        <button id="record" class="record"><span data-i18n="record">🎙️ Record</span></button>
-        <span id="status" class="status"></span>
+<div class="main">
+
+  <!-- ═══════════════════════ HOME ══════════════════════════════ -->
+  <div class="screen home-screen active" id="scr-home">
+
+    <div class="welcome-card">
+      <h2 id="wlc-h">مرحباً بك في المساعد القانوني</h2>
+      <p  id="wlc-p">اسألني عن حقوقك بموجب القانون الأساسي الفلسطيني. سأشرح لك بلغة بسيطة وواضحة.</p>
+    </div>
+
+    <div class="mic-section">
+      <div class="mic-label" id="mic-lbl">احكي مشكلتك</div>
+      <div class="mic-wrap">
+        <button class="mic-btn" id="home-mic" onclick="toggleHomeMic()">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <!-- microphone SVG -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4zm-1 4a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zM5 11a7 7 0 0 0 14 0h2a9 9 0 0 1-8 8.94V22h-2v-2.06A9 9 0 0 1 3 11H5z"/>
+          </svg>
+        </button>
       </div>
-      <div class="examples" id="examples"></div>
+      <div class="mic-status" id="home-mic-st">اضغط للتسجيل</div>
+      <div class="live-tx" id="live-tx"></div>
     </div>
 
-    <div id="results" style="display:none;">
-      <h2 data-i18n="urgency">Urgency</h2>
-      <div class="card">
-        <span id="badge" class="badge"></span>
-        <div id="deadline" class="deadline"></div>
-      </div>
-
-      <h2 data-i18n="action_plan">What to do next</h2>
-      <div class="card">
-        <ol id="plan" class="plan"></ol>
-      </div>
-
-      <h2 data-i18n="answer_h">Answer</h2>
-      <div class="card">
-        <div id="intent" class="status"></div>
-        <div id="answer" class="answer"></div>
-        <div class="toolbar">
-          <button id="speak" class="pill"><span data-i18n="listen">▶ Listen</span></button>
-          <button id="copy"  class="pill"><span data-i18n="copy">⧉ Copy</span></button>
-          <button id="share" class="pill"><span data-i18n="share">↗ Share</span></button>
-        </div>
-      </div>
-
-      <h2 data-i18n="legal_basis">Legal basis</h2>
-      <div id="sources" class="sources"></div>
-
-      <h2 data-i18n="nearby">Nearby legal aid</h2>
-      <div id="map"></div>
-      <div id="clinics" style="margin-top: 12px;"></div>
+    <div>
+      <div class="section-label" id="exlbl">أمثلة شائعة</div>
+      <div class="chips" id="chips"></div>
     </div>
 
-    <div class="disclaimer" data-i18n="disclaimer">
-      This is general legal information — not legal advice. For any specific situation,
-      consult a licensed Palestinian lawyer or visit a legal aid center.
+    <div class="disc">
+      <span class="disc-icon">⚠️</span>
+      <span id="disc-txt">هذه معلومات قانونية عامة فقط. يُرجى استشارة محامٍ مختص.</span>
     </div>
-  </main>
+  </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script>
-    // ---------- i18n ----------
-    const I18N = {
-      en: {
-        title: "AI Legal Aid — Palestine",
-        subtitle: "Palestinian Basic Law (2003, amended 2005)",
-        language: "Language",
-        auto_detect: "Auto detect",
-        describe: "Describe your legal problem",
-        placeholder: "e.g. My landlord verbally told me I have 3 days to leave. What are my rights?",
-        ask: "Get legal guidance",
-        record: "🎙️ Record",
-        stop: "⏹ Stop",
-        urgency: "Urgency",
-        action_plan: "What to do next",
-        answer_h: "Answer",
-        legal_basis: "Legal basis",
-        nearby: "Nearby legal aid",
-        listen: "▶ Listen",
-        listen_stop: "■ Stop",
-        copy: "⧉ Copy",
-        copied: "✓ Copied",
-        share: "↗ Share",
-        thinking: "thinking…",
-        listening: "listening…",
-        transcribed: "transcribed",
-        recording: "recording…",
-        transcribing: "transcribing…",
-        mic_unsupported: "audio not supported in this browser",
-        disclaimer: "This is general legal information — not legal advice. For any specific situation, consult a licensed Palestinian lawyer or visit a legal aid center.",
-      },
-      ar: {
-        title: "المساعد القانوني الذكي — فلسطين",
-        subtitle: "القانون الأساسي الفلسطيني (2003، المعدل 2005)",
-        language: "اللغة",
-        auto_detect: "كشف تلقائي",
-        describe: "صف مشكلتك القانونية",
-        placeholder: "مثلاً: قال لي صاحب البيت شفهياً إن عليّ المغادرة خلال 3 أيام. ما هي حقوقي؟",
-        ask: "احصل على إرشاد قانوني",
-        record: "🎙️ تسجيل",
-        stop: "⏹ إيقاف",
-        urgency: "مستوى الإلحاح",
-        action_plan: "ماذا تفعل الآن",
-        answer_h: "الإجابة",
-        legal_basis: "الأساس القانوني",
-        nearby: "مراكز مساعدة قانونية قريبة",
-        listen: "▶ استماع",
-        listen_stop: "■ إيقاف",
-        copy: "⧉ نسخ",
-        copied: "✓ تم النسخ",
-        share: "↗ مشاركة",
-        thinking: "جارٍ التفكير…",
-        listening: "جارٍ الاستماع…",
-        transcribed: "تم التحويل",
-        recording: "جارٍ التسجيل…",
-        transcribing: "جارٍ التحويل…",
-        mic_unsupported: "الميكروفون غير مدعوم في هذا المتصفح",
-        disclaimer: "هذه معلومات قانونية عامة وليست استشارة قانونية. لحالتك الخاصة، يُرجى استشارة محامٍ فلسطيني مُرخَّص أو زيارة مركز للمساعدة القانونية.",
-      },
+  <!-- ═══════════════════════ CHAT ══════════════════════════════ -->
+  <div class="screen chat-screen" id="scr-chat">
+
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="empty-chat" id="chat-empty">
+        <div class="e-icon">💬</div>
+        <p id="chat-empty-txt">لم تبدأ أي محادثة بعد.<br>اسأل عن مشكلتك من الشاشة الرئيسية أو اكتب هنا.</p>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <button class="icon-btn mic-chat-btn" id="chat-mic" onclick="toggleChatMic()" aria-label="تسجيل صوتي">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4zm-1 4a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V5zM5 11a7 7 0 0 0 14 0h2a9 9 0 0 1-8 8.94V22h-2v-2.06A9 9 0 0 1 3 11H5z"/>
+        </svg>
+      </button>
+      <textarea class="c-input" id="c-input" rows="1"
+        placeholder="اكتب سؤالك هنا..."
+        onkeydown="onKey(event)"
+        oninput="growTa(this)"></textarea>
+      <button class="icon-btn send-btn" id="send-btn" onclick="sendMsg()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ DOCS ══════════════════════════════ -->
+  <div class="screen docs-screen" id="scr-docs">
+    <div class="screen-ttl" id="docs-ttl">النماذج القانونية</div>
+    <div id="forms-list"></div>
+  </div>
+
+  <!-- ═══════════════════════ HELP ══════════════════════════════ -->
+  <div class="screen help-screen" id="scr-help">
+    <div class="screen-ttl" id="help-ttl">مساعدة قانونية</div>
+
+    <div class="emer-banner" onclick="callAid()">
+      <div class="emer-ico">📞</div>
+      <div class="emer-text">
+        <h3 id="emer-h">اتصل بمساعدة قانونية</h3>
+        <p  id="emer-p">للحالات العاجلة — مجاني</p>
+      </div>
+    </div>
+
+    <div id="help-map"></div>
+    <div id="clinics-list"></div>
+  </div>
+
+  <!-- ═══════════════════════ BOTTOM NAV ═══════════════════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-scr="home" onclick="goTo('home')">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label" id="nav-home">الرئيسية</span>
+    </button>
+    <button class="nav-item" data-scr="chat" onclick="goTo('chat')">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label" id="nav-chat">المحادثات</span>
+    </button>
+    <button class="nav-item" data-scr="docs" onclick="goTo('docs')">
+      <span class="nav-icon">📄</span>
+      <span class="nav-label" id="nav-docs">المستندات</span>
+    </button>
+    <button class="nav-item" data-scr="help" onclick="goTo('help')">
+      <span class="nav-icon">🆘</span>
+      <span class="nav-label" id="nav-help">المساعدة</span>
+    </button>
+  </nav>
+
+</div><!-- /main -->
+
+<!-- ═══════════════════ FORM MODAL ══════════════════════════════ -->
+<div class="overlay" id="form-overlay" onclick="overlayClick(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-ttl">نموذج</div>
+    <div id="sheet-fields"></div>
+    <button class="sheet-btn pri" id="sheet-submit" onclick="submitForm()">إنشاء النموذج</button>
+    <button class="sheet-btn sec" id="sheet-cancel" onclick="closeOverlay()">إلغاء</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// ================================================================
+// STATE
+// ================================================================
+let lang = "ar";
+let activeScr = "home";
+let helpMapLoaded = false, helpMap = null, helpLayer = null;
+let homeRec = false, chatRec = false;
+let homeRecog = null, chatRecog = null;
+let mediaRec = null, audioChunks = [];
+let curFormType = null;
+let speaking = false, curUtter = null;
+
+// ================================================================
+// TRANSLATIONS
+// ================================================================
+const T = {
+  ar: {
+    hdr_title:   "مساعد قانوني",
+    hdr_sub:     "القانون الأساسي الفلسطيني",
+    lang_btn:    "EN",
+    wlc_h:       "مرحباً بك في المساعد القانوني",
+    wlc_p:       "اسألني عن حقوقك بموجب القانون الأساسي الفلسطيني. سأشرح لك بلغة بسيطة وواضحة.",
+    mic_lbl:     "احكي مشكلتك",
+    mic_tap:     "اضغط للتسجيل",
+    mic_rec:     "جارٍ التسجيل… اضغط للإيقاف",
+    mic_tx:      "جارٍ التحويل…",
+    mic_done:    "تم! جارٍ البحث عن إجابتك…",
+    exlbl:       "أمثلة شائعة",
+    disc:        "هذه معلومات قانونية عامة فقط. يُرجى استشارة محامٍ مختص.",
+    nav_home:    "الرئيسية",
+    nav_chat:    "المحادثات",
+    nav_docs:    "المستندات",
+    nav_help:    "المساعدة",
+    chat_empty:  "لم تبدأ أي محادثة بعد.\nاسأل عن مشكلتك من الشاشة الرئيسية أو اكتب هنا.",
+    c_input_ph:  "اكتب سؤالك هنا…",
+    docs_ttl:    "النماذج القانونية",
+    help_ttl:    "مساعدة قانونية",
+    emer_h:      "اتصل بمساعدة قانونية",
+    emer_p:      "للحالات العاجلة — مجاني",
+    listen:      "🔊 استماع",
+    listen_stop: "■ إيقاف",
+    view_src:    "📜 النص القانوني",
+    gen_form:    "📝 إنشاء نموذج",
+    find_help:   "📍 مساعدة قريبة",
+    btn_call:    "📞 اتصال",
+    btn_dir:     "🗺️ اتجاهات",
+    sh_submit:   "إنشاء النموذج",
+    sh_cancel:   "إلغاء",
+    sh_working:  "جارٍ الإنشاء…",
+    mic_err:     "خطأ في الميكروفون",
+    mic_nosupp:  "الميكروفون غير مدعوم",
+    examples: [
+      "قال لي صاحب البيت شفهياً أن عليّ المغادرة خلال 3 أيام. ما حقوقي؟",
+      "اعتقلت الشرطة أخي بدون أمر قضائي. ماذا أفعل؟",
+      "فصلني صاحب العمل دون إشعار — ما حقوقي في العمل؟",
+      "هل يمكن للحكومة مصادرة أرضي؟",
+    ],
+    forms: {
+      eviction_response:      { name: "رد على إشعار الإخلاء",     desc: "لمواجهة إخلاء غير قانوني",          icon: "🏠" },
+      labor_complaint:        { name: "شكوى عمالية",               desc: "لتقديم شكوى ضد صاحب العمل",         icon: "💼" },
+      detention_rights_notice:{ name: "إشعار حقوق الاحتجاز",      desc: "للمطالبة بحقوق المحتجز",             icon: "⚖️" },
+    },
+    form_fields: {
+      landlord_name: "اسم صاحب البيت",
+      tenant_name:   "اسم المستأجر",
+      address:       "العنوان",
+      notice_date:   "تاريخ الإشعار",
+      notice_period: "مدة الإشعار (أيام)",
+      employee_name: "اسم الموظف",
+      employer_name: "اسم صاحب العمل",
+      issue_summary: "وصف المشكلة",
+      detainee_name: "اسم المحتجز",
+      detention_date:"تاريخ الاحتجاز",
+      filer_name:    "اسم مقدم الشكوى",
+    },
+  },
+  en: {
+    hdr_title:   "Legal Aid",
+    hdr_sub:     "Palestinian Basic Law",
+    lang_btn:    "عربي",
+    wlc_h:       "Welcome to AI Legal Aid",
+    wlc_p:       "Ask me about your rights under the Palestinian Basic Law. I'll explain in simple, clear language.",
+    mic_lbl:     "Speak your problem",
+    mic_tap:     "Tap to record",
+    mic_rec:     "Recording… Tap to stop",
+    mic_tx:      "Transcribing…",
+    mic_done:    "Got it! Finding your answer…",
+    exlbl:       "Common questions",
+    disc:        "This is general legal information. Consult a licensed lawyer.",
+    nav_home:    "Home",
+    nav_chat:    "History",
+    nav_docs:    "Documents",
+    nav_help:    "Help",
+    chat_empty:  "No conversation yet.\nAsk about your legal problem from the home screen or type here.",
+    c_input_ph:  "Type your question here…",
+    docs_ttl:    "Legal Forms",
+    help_ttl:    "Legal Help",
+    emer_h:      "Call Legal Aid",
+    emer_p:      "For urgent cases — Free",
+    listen:      "🔊 Listen",
+    listen_stop: "■ Stop",
+    view_src:    "📜 Legal Source",
+    gen_form:    "📝 Generate Form",
+    find_help:   "📍 Find Help",
+    btn_call:    "📞 Call",
+    btn_dir:     "🗺️ Directions",
+    sh_submit:   "Generate Form",
+    sh_cancel:   "Cancel",
+    sh_working:  "Generating…",
+    mic_err:     "Microphone error",
+    mic_nosupp:  "Microphone not supported",
+    examples: [
+      "My landlord verbally told me I have 3 days to leave. What are my rights?",
+      "The police arrested my brother without a warrant. What can I do?",
+      "My employer fired me without notice — what are my labor rights?",
+      "Can the government confiscate my land?",
+    ],
+    forms: {
+      eviction_response:      { name: "Eviction Response Letter",    desc: "Challenge an unlawful eviction",      icon: "🏠" },
+      labor_complaint:        { name: "Labor Complaint",             desc: "File a complaint against an employer", icon: "💼" },
+      detention_rights_notice:{ name: "Detention Rights Notice",     desc: "Assert detainee rights",              icon: "⚖️" },
+    },
+    form_fields: {
+      landlord_name: "Landlord Name",
+      tenant_name:   "Tenant Name",
+      address:       "Address",
+      notice_date:   "Notice Date",
+      notice_period: "Notice Period (days)",
+      employee_name: "Employee Name",
+      employer_name: "Employer Name",
+      issue_summary: "Issue Description",
+      detainee_name: "Detainee Name",
+      detention_date:"Detention Date",
+      filer_name:    "Filer Name",
+    },
+  },
+};
+function t(k) { return T[lang][k] ?? T.en[k] ?? k; }
+
+// ================================================================
+// LANGUAGE SWITCH
+// ================================================================
+function toggleLang() {
+  lang = lang === "ar" ? "en" : "ar";
+  const html = document.documentElement;
+  html.lang = lang;
+  html.dir  = lang === "ar" ? "rtl" : "ltr";
+  document.body.style.fontFamily = lang === "ar"
+    ? "var(--font-ar)" : "var(--font-en)";
+  applyI18n();
+}
+
+function applyI18n() {
+  const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  set("hdr-title",    "hdr_title");
+  set("hdr-sub",      "hdr_sub");
+  set("lang-btn",     "lang_btn");
+  set("wlc-h",        "wlc_h");
+  set("wlc-p",        "wlc_p");
+  set("mic-lbl",      "mic_lbl");
+  set("home-mic-st",  "mic_tap");
+  set("exlbl",        "exlbl");
+  set("disc-txt",     "disc");
+  set("nav-home",     "nav_home");
+  set("nav-chat",     "nav_chat");
+  set("nav-docs",     "nav_docs");
+  set("nav-help",     "nav_help");
+  set("docs-ttl",     "docs_ttl");
+  set("help-ttl",     "help_ttl");
+  set("emer-h",       "emer_h");
+  set("emer-p",       "emer_p");
+  set("sheet-submit", "sh_submit");
+  set("sheet-cancel", "sh_cancel");
+
+  const chatEmpty = document.getElementById("chat-empty-txt");
+  if (chatEmpty) chatEmpty.innerHTML = t("chat_empty").replace("\n", "<br>");
+
+  const ci = document.getElementById("c-input");
+  if (ci) ci.placeholder = t("c_input_ph");
+  ci && (ci.dir = lang === "ar" ? "rtl" : "ltr");
+
+  renderChips();
+  renderForms();
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function goTo(name) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+
+  const scr = document.getElementById(`scr-${name}`);
+  if (scr) scr.classList.add("active");
+  const nav = document.querySelector(`[data-scr="${name}"]`);
+  if (nav) nav.classList.add("active");
+
+  activeScr = name;
+  if (name === "help") loadHelp();
+  if (name === "docs") renderForms();
+}
+
+// ================================================================
+// CHIPS (example questions)
+// ================================================================
+function renderChips() {
+  const c = document.getElementById("chips");
+  if (!c) return;
+  c.innerHTML = "";
+  t("examples").forEach(ex => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = ex;
+    b.onclick = () => { goTo("chat"); inp().value = ex; sendMsg(); };
+    c.appendChild(b);
+  });
+}
+
+// ================================================================
+// HOME MIC
+// ================================================================
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function toggleHomeMic() {
+  if (!homeRec) startHomeMic();
+  else stopHomeMic();
+}
+
+function startHomeMic() {
+  homeRec = true;
+  const btn = document.getElementById("home-mic");
+  const st  = document.getElementById("home-mic-st");
+  const tx  = document.getElementById("live-tx");
+  btn.classList.add("on");
+  st.textContent = t("mic_rec"); st.className = "mic-status rec";
+  tx.textContent = ""; tx.classList.add("show");
+
+  if (SR) {
+    homeRecog = new SR();
+    homeRecog.continuous = true; homeRecog.interimResults = true;
+    homeRecog.lang = lang === "ar" ? "ar-PS" : "en-US";
+    homeRecog.onresult = e => {
+      let s = ""; for (let i = 0; i < e.results.length; i++) s += e.results[i][0].transcript;
+      tx.textContent = s;
     };
-
-    const EXAMPLES = {
-      en: [
-        "My landlord verbally told me I have 3 days to leave. What are my rights?",
-        "The police arrested my brother without a warrant. What can I do?",
-        "My employer fired me without notice — what are my labor rights?",
-        "Can the government take my land? What compensation am I owed?",
-      ],
-      ar: [
-        "أخبرني صاحب البيت شفهياً أن عليّ المغادرة خلال 3 أيام. ما هي حقوقي؟",
-        "اعتقلت الشرطة أخي بدون مذكرة. ماذا أفعل؟",
-        "فصلني صاحب العمل دون إشعار — ما هي حقوقي في العمل؟",
-      ],
-    };
-
-    const $ = (id) => document.getElementById(id);
-    const statusEl = $("status");
-    const langSel = $("lang");
-
-    function uiLang() {
-      return langSel.value === "ar" ? "ar" : "en";
-    }
-    function t(key) {
-      return I18N[uiLang()][key] || I18N.en[key] || key;
-    }
-    function applyI18n() {
-      document.body.classList.toggle("rtl", uiLang() === "ar");
-      document.documentElement.lang = uiLang();
-      document.querySelectorAll("[data-i18n]").forEach((el) => {
-        el.textContent = t(el.dataset.i18n);
-      });
-      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-        el.placeholder = t(el.dataset.i18nPlaceholder);
-      });
-      renderExamples();
-    }
-
-    function renderExamples() {
-      const v = langSel.value;
-      const host = $("examples");
-      host.innerHTML = "";
-      const list = v === "auto" ? [...EXAMPLES.en, ...EXAMPLES.ar] : EXAMPLES[v];
-      for (const ex of list) {
-        const b = document.createElement("button");
-        b.className = "example";
-        b.textContent = ex;
-        b.onclick = () => { $("question").value = ex; };
-        host.appendChild(b);
-      }
-    }
-
-    langSel.onchange = applyI18n;
-    applyI18n();
-
-    // ---------- /ask ----------
-    async function ask() {
-      const q = $("question").value.trim();
-      if (!q) return;
-      statusEl.textContent = t("thinking");
-      $("ask").disabled = true;
-      try {
-        const resp = await fetch("/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q, language: langSel.value, top_k: 3 }),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        renderResults(data);
-        statusEl.textContent = "";
-      } catch (err) {
-        statusEl.textContent = "error: " + err.message;
-      } finally {
-        $("ask").disabled = false;
-      }
-    }
-
-    function renderResults(data) {
-      $("results").style.display = "block";
-      const isArabic = data.language === "ar" || /[؀-ۿ]/.test(data.answer || "");
-
-      // Urgency badge
-      const tr = data.triage || {};
-      const badge = $("badge");
-      badge.className = "badge " + (tr.color || "green");
-      badge.textContent = tr.label || "";
-      $("deadline").textContent = tr.deadline_hint || "";
-
-      // Action plan
-      const planEl = $("plan");
-      planEl.innerHTML = "";
-      for (const step of data.action_plan || []) {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class="when">${escapeHtml(step.timeframe)}</span><span>${escapeHtml(step.action)}</span>`;
-        planEl.appendChild(li);
-      }
-
-      // Answer
-      const answerEl = $("answer");
-      answerEl.textContent = data.answer;
-      answerEl.className = "answer" + (isArabic ? " rtl" : "");
-
-      const i = data.intent || {};
-      $("intent").textContent = `intent: ${i.label || "general"} · confidence ${(i.confidence ?? 0).toFixed(2)}`;
-
-      // Sources
-      const sourcesEl = $("sources");
-      sourcesEl.innerHTML = "";
-      for (const s of data.sources || []) {
-        const d = document.createElement("div");
-        d.className = "source";
-        d.innerHTML = `<strong>${escapeHtml(s.article || "")} — ${escapeHtml(s.title || "")}</strong>${escapeHtml(s.text || "")}`;
-        sourcesEl.appendChild(d);
-      }
-
-      // Clinics + map
-      renderClinics(data.clinics || []);
-
-      // Stash for TTS / copy / share
-      window.__lastAnswer = data.answer || "";
-      window.__lastLang = isArabic ? "ar" : "en";
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    }
-
-    $("ask").onclick = ask;
-    $("question").addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) ask();
+    homeRecog.onend = () => finishHomeMic(tx.textContent.trim());
+    homeRecog.onerror = () => finishHomeMic("");
+    homeRecog.start();
+  } else {
+    startMR(() => {});
+    // mediaRecorder.onstop will call finishHomeMic
+    const origStop = () => {};
+    mediaRec && (mediaRec.onstop = async () => {
+      const text = await serverTranscribe(audioChunks);
+      tx.textContent = text;
+      finishHomeMic(text);
     });
+  }
+}
 
-    // ---------- TTS ----------
-    let speaking = false;
-    function speakLangCode(lang) { return lang === "ar" ? "ar-SA" : "en-US"; }
-    function pickVoice(lang) {
-      const voices = window.speechSynthesis.getVoices();
-      const code = speakLangCode(lang);
-      return voices.find(v => v.lang === code)
-          || voices.find(v => v.lang.startsWith(lang))
-          || voices[0];
-    }
-    $("speak").onclick = () => {
-      if (!("speechSynthesis" in window)) {
-        statusEl.textContent = "TTS not supported"; return;
-      }
-      if (speaking) {
-        window.speechSynthesis.cancel();
-        speaking = false;
-        $("speak").querySelector("span").textContent = t("listen");
-        return;
-      }
-      const text = window.__lastAnswer || $("answer").textContent;
-      if (!text) return;
-      const u = new SpeechSynthesisUtterance(text);
-      const lang = window.__lastLang || uiLang();
-      u.lang = speakLangCode(lang);
-      const v = pickVoice(lang);
-      if (v) u.voice = v;
-      u.rate = 0.95;
-      u.onend = () => { speaking = false; $("speak").querySelector("span").textContent = t("listen"); };
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
-      speaking = true;
-      $("speak").querySelector("span").textContent = t("listen_stop");
+function stopHomeMic() {
+  if (homeRecog) { homeRecog.stop(); homeRecog = null; }
+  if (mediaRec && mediaRec.state === "recording") mediaRec.stop();
+}
+
+function finishHomeMic(text) {
+  homeRec = false;
+  document.getElementById("home-mic").classList.remove("on");
+  const st = document.getElementById("home-mic-st");
+  if (text) {
+    st.textContent = t("mic_done"); st.className = "mic-status go";
+    goTo("chat");
+    inp().value = text;
+    sendMsg();
+  } else {
+    st.textContent = t("mic_tap"); st.className = "mic-status";
+  }
+}
+
+// ================================================================
+// CHAT MIC
+// ================================================================
+function toggleChatMic() {
+  if (!chatRec) startChatMic();
+  else stopChatMic();
+}
+
+function startChatMic() {
+  chatRec = true;
+  document.getElementById("chat-mic").classList.add("on");
+  if (SR) {
+    chatRecog = new SR();
+    chatRecog.interimResults = true;
+    chatRecog.lang = lang === "ar" ? "ar-PS" : "en-US";
+    chatRecog.onresult = e => {
+      let s = ""; for (let i = 0; i < e.results.length; i++) s += e.results[i][0].transcript;
+      inp().value = s; growTa(inp());
     };
-
-    // Voices may load async on Chrome.
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.onvoiceschanged = () => {};
-    }
-
-    // ---------- Copy / Share ----------
-    $("copy").onclick = async () => {
-      const text = window.__lastAnswer || $("answer").textContent;
-      if (!text) return;
-      try {
-        await navigator.clipboard.writeText(text);
-        const span = $("copy").querySelector("span");
-        const orig = span.textContent;
-        span.textContent = t("copied");
-        setTimeout(() => { span.textContent = orig; }, 1200);
-      } catch (e) { statusEl.textContent = "copy failed"; }
-    };
-
-    $("share").onclick = async () => {
-      const text = window.__lastAnswer || $("answer").textContent;
-      if (!text) return;
-      if (navigator.share) {
-        try { await navigator.share({ title: t("title"), text }); }
-        catch (e) { /* user cancelled */ }
-      } else {
-        await navigator.clipboard.writeText(text);
-        statusEl.textContent = t("copied");
-      }
-    };
-
-    // ---------- Map ----------
-    let map = null, markersLayer = null;
-    function ensureMap() {
-      if (map) return map;
-      map = L.map("map", { scrollWheelZoom: false }).setView([31.95, 35.20], 8);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap',
-      }).addTo(map);
-      markersLayer = L.layerGroup().addTo(map);
-      return map;
-    }
-
-    function renderClinics(clinics) {
-      // Map pins
-      const m = ensureMap();
-      markersLayer.clearLayers();
-      const points = [];
-      for (const c of clinics) {
-        if (c.lat == null && c.latitude == null) continue;
-        const lat = c.lat ?? c.latitude;
-        const lon = c.lon ?? c.longitude;
-        if (lat && lon) {
-          const marker = L.marker([lat, lon])
-            .bindPopup(`<strong>${escapeHtml(c.name)}</strong><br>${escapeHtml(c.city)}, ${escapeHtml(c.region)}<br>${escapeHtml(c.phone)}`);
-          marker.addTo(markersLayer);
-          points.push([lat, lon]);
-        }
-      }
-      if (points.length) m.fitBounds(points, { padding: [30, 30], maxZoom: 11 });
-
-      // Cards (we have lat/lon? our /ask response doesn't include them, so re-fetch
-      // from /clinics with intent for richer data including coords).
-      const clinicsEl = $("clinics");
-      clinicsEl.innerHTML = "";
-      for (const c of clinics) {
-        const d = document.createElement("div");
-        d.className = "clinic";
-        const tags = (c.specialties || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
-        const dist = c.distance_km != null ? ` · ${c.distance_km} km` : "";
-        d.innerHTML = `
-          <div class="name">${escapeHtml(c.name)}</div>
-          <div class="meta">${escapeHtml(c.city)}, ${escapeHtml(c.region)} · ${escapeHtml(c.phone)} · ${escapeHtml(c.email)}${dist}</div>
-          <div style="margin-top:6px;">${tags}</div>
-        `;
-        clinicsEl.appendChild(d);
-      }
-    }
-
-    // ---------- Voice input ----------
-    const recBtn = $("record");
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    function srLangCode() {
-      const v = langSel.value;
-      if (v === "ar") return "ar-PS";
-      if (v === "en") return "en-US";
-      return undefined;
-    }
-
-    let recog = null, recognizing = false;
-    let mediaRecorder = null, chunks = [];
-
-    function setRecBtn(on) {
-      recBtn.classList.toggle("on", on);
-      recBtn.querySelector("span").textContent = on ? t("stop") : t("record");
-    }
-
-    if (SR) {
-      recog = new SR();
-      recog.interimResults = true;
-      recog.continuous = false;
-      recog.maxAlternatives = 1;
-
-      recog.onresult = (e) => {
-        let txt = "";
-        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
-        $("question").value = txt;
-        statusEl.textContent = e.results[e.results.length - 1].isFinal
-          ? t("transcribed") : t("listening");
+    chatRecog.onend = () => { chatRec = false; document.getElementById("chat-mic").classList.remove("on"); };
+    chatRecog.onerror = () => { chatRec = false; document.getElementById("chat-mic").classList.remove("on"); };
+    chatRecog.start();
+  } else {
+    startMR(() => {
+      mediaRec.onstop = async () => {
+        const text = await serverTranscribe(audioChunks);
+        if (text) { inp().value = text; growTa(inp()); }
+        chatRec = false; document.getElementById("chat-mic").classList.remove("on");
       };
-      recog.onerror = (e) => {
-        statusEl.textContent = "mic error: " + (e.error || "unknown");
-        recognizing = false; setRecBtn(false);
-      };
-      recog.onend = () => { recognizing = false; setRecBtn(false); };
-    }
+    });
+  }
+}
 
-    recBtn.onclick = async () => {
-      if (recog) {
-        if (recognizing) { recog.stop(); return; }
-        const code = srLangCode();
-        if (code) recog.lang = code;
-        try {
-          recog.start();
-          recognizing = true; setRecBtn(true);
-          statusEl.textContent = t("listening");
-        } catch (err) { statusEl.textContent = "mic error: " + err.message; }
-        return;
-      }
-      // Fallback: server transcription
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop(); setRecBtn(false); return;
-      }
-      if (!navigator.mediaDevices) { statusEl.textContent = t("mic_unsupported"); return; }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        chunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach(t => t.stop());
-          const blob = new Blob(chunks, { type: "audio/webm" });
-          statusEl.textContent = t("transcribing");
-          const fd = new FormData();
-          fd.append("audio", blob, "speech.webm");
-          if (langSel.value !== "auto") fd.append("language", langSel.value);
-          try {
-            const r = await fetch("/transcribe", { method: "POST", body: fd });
-            if (!r.ok) {
-              const j = await r.json().catch(() => ({}));
-              throw new Error(j.detail || `HTTP ${r.status}`);
-            }
-            const data = await r.json();
-            $("question").value = data.text || "";
-            statusEl.textContent = `${t("transcribed")} (${data.language || "?"})`;
-          } catch (err) { statusEl.textContent = "transcription error: " + err.message; }
-        };
-        mediaRecorder.start();
-        setRecBtn(true);
-        statusEl.textContent = t("recording");
-      } catch (err) { statusEl.textContent = "mic error: " + err.message; }
-    };
+function stopChatMic() {
+  if (chatRecog) { chatRecog.stop(); chatRecog = null; }
+  if (mediaRec && mediaRec.state === "recording") mediaRec.stop();
+  chatRec = false; document.getElementById("chat-mic").classList.remove("on");
+}
 
-    // ---------- PWA service worker ----------
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
-  </script>
+// ================================================================
+// MEDIA RECORDER HELPER
+// ================================================================
+async function startMR(onReady) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRec = new MediaRecorder(stream);
+    mediaRec.ondataavailable = e => audioChunks.push(e.data);
+    mediaRec.onstop_cleanup = () => stream.getTracks().forEach(t => t.stop());
+    onReady();
+    mediaRec.start();
+  } catch { /* user denied mic */ }
+}
+
+async function serverTranscribe(chunks) {
+  try {
+    const blob = new Blob(chunks, { type: "audio/webm" });
+    const fd = new FormData();
+    fd.append("audio", blob, "speech.webm");
+    fd.append("language", lang);
+    const r = await fetch("/transcribe", { method: "POST", body: fd });
+    if (!r.ok) return "";
+    const d = await r.json();
+    return d.text || "";
+  } catch { return ""; }
+}
+
+// ================================================================
+// CHAT — send & render
+// ================================================================
+const inp = () => document.getElementById("c-input");
+const msgs = () => document.getElementById("chat-msgs");
+
+function onKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+function growTa(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 110) + "px"; }
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function sendMsg() {
+  const q = inp().value.trim();
+  if (!q) return;
+  inp().value = ""; inp().style.height = "auto";
+
+  // Hide empty state
+  const em = document.getElementById("chat-empty");
+  if (em) em.style.display = "none";
+
+  appendUserBubble(q);
+  const lid = appendLoading();
+
+  try {
+    const r = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q, language: lang, top_k: 3 }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    removeLoading(lid);
+    appendAIBubble(d);
+  } catch (err) {
+    removeLoading(lid);
+    appendErrBubble(err.message);
+  }
+}
+
+function appendUserBubble(text) {
+  const d = document.createElement("div");
+  d.className = "msg user";
+  d.innerHTML = `
+    <div class="avatar">👤</div>
+    <div class="bbl">${esc(text)}</div>`;
+  msgs().appendChild(d);
+  scrollBottom();
+}
+
+function appendLoading() {
+  const id = "ld" + Date.now();
+  const d = document.createElement("div");
+  d.className = "msg ai"; d.id = id;
+  d.innerHTML = `<div class="avatar">⚖️</div><div class="bbl ld"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs().appendChild(d); scrollBottom();
+  return id;
+}
+function removeLoading(id) { document.getElementById(id)?.remove(); }
+
+function appendErrBubble(msg) {
+  const d = document.createElement("div");
+  d.className = "msg ai";
+  d.innerHTML = `<div class="avatar">⚖️</div><div class="bbl" style="color:var(--red)">⚠️ ${esc(msg)}</div>`;
+  msgs().appendChild(d); scrollBottom();
+}
+
+function appendAIBubble(data) {
+  const tr  = data.triage     || {};
+  const src = data.sources    || [];
+  const pln = data.action_plan|| [];
+  const answer = data.answer  || "";
+  const ansLang = data.language || lang;
+
+  // Triage badge
+  const badge = tr.label
+    ? `<div class="tr-badge ${esc(tr.color||'green')}">${esc(tr.label)}</div>` : "";
+
+  // Key right highlight (first source)
+  const rh = src.length
+    ? `<div class="rh">📌 ${esc(src[0].article||"")}${src[0].title ? " — "+esc(src[0].title) : ""}</div>` : "";
+
+  // Action plan
+  let planHtml = "";
+  if (pln.length) {
+    planHtml = `<ul class="steps">${pln.map(s =>
+      `<li class="step"><span class="step-when">${esc(s.timeframe)}</span><span class="step-act">${esc(s.action)}</span></li>`
+    ).join("")}</ul>`;
+  }
+
+  // Expandable law cards
+  const lawCards = src.map(s =>
+    `<div class="law-card">
+      <div class="law-hdr" onclick="toggleLaw(this)">
+        <span>${esc(s.article||"المادة")}${s.title?" — "+esc(s.title):""}</span>
+        <span class="law-chev">▾</span>
+      </div>
+      <div class="law-body">${esc(s.text||"")}</div>
+    </div>`
+  ).join("");
+
+  // Action buttons
+  const btnId = "sp" + Date.now();
+  const actBtns = `
+    <div class="bbl-acts">
+      <button class="bbl-btn" id="${btnId}"
+        data-text="${esc(answer)}" data-lang="${esc(ansLang)}"
+        onclick="speakToggle(this)">${t("listen")}</button>
+      ${src.length ? `<button class="bbl-btn" onclick="toggleLaws(this)">${t("view_src")}</button>` : ""}
+      <button class="bbl-btn pri" onclick="goTo('docs')">${t("gen_form")}</button>
+      <button class="bbl-btn"     onclick="goTo('help')">${t("find_help")}</button>
+    </div>`;
+
+  const d = document.createElement("div");
+  d.className = "msg ai";
+  d.innerHTML = `
+    <div class="avatar">⚖️</div>
+    <div class="bbl">
+      ${badge}
+      <div style="white-space:pre-wrap">${esc(answer)}</div>
+      ${rh}
+      ${planHtml}
+      ${lawCards}
+      ${actBtns}
+    </div>`;
+  msgs().appendChild(d);
+  scrollBottom();
+}
+
+function toggleLaw(hdr) { hdr.closest(".law-card").classList.toggle("open"); }
+function toggleLaws(btn) {
+  btn.closest(".bbl").querySelectorAll(".law-card").forEach(c => c.classList.toggle("open"));
+}
+function scrollBottom() {
+  const m = msgs(); if (m) m.scrollTop = m.scrollHeight;
+}
+
+// TTS
+function speakToggle(btn) {
+  if (!("speechSynthesis" in window)) return;
+  if (speaking) {
+    window.speechSynthesis.cancel();
+    speaking = false; btn.textContent = t("listen"); return;
+  }
+  const u = new SpeechSynthesisUtterance(btn.dataset.text);
+  u.lang = btn.dataset.lang === "ar" ? "ar-SA" : "en-US";
+  u.rate = 0.9;
+  u.onend = () => { speaking = false; btn.textContent = t("listen"); };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+  speaking = true; curUtter = u;
+  btn.textContent = t("listen_stop");
+}
+
+// ================================================================
+// FORMS
+// ================================================================
+const FORM_FIELDS = {
+  eviction_response:       ["landlord_name","tenant_name","address","notice_date","notice_period"],
+  labor_complaint:         ["employee_name","employer_name","issue_summary"],
+  detention_rights_notice: ["detainee_name","detention_date","filer_name"],
+};
+
+function renderForms() {
+  const c = document.getElementById("forms-list");
+  if (!c) return;
+  c.innerHTML = "";
+  const defs = t("forms");
+  Object.entries(defs).forEach(([key, def]) => {
+    const el = document.createElement("div");
+    el.className = "form-card";
+    el.innerHTML = `
+      <div class="form-ico">${def.icon}</div>
+      <div class="form-info">
+        <div class="form-name">${esc(def.name)}</div>
+        <div class="form-desc">${esc(def.desc)}</div>
+      </div>
+      <span class="form-arr">${lang==="ar"?"‹":"›"}</span>`;
+    el.onclick = () => openForm(key, def.name);
+    c.appendChild(el);
+  });
+}
+
+function openForm(type, name) {
+  curFormType = type;
+  document.getElementById("sheet-ttl").textContent = name;
+  document.getElementById("sheet-submit").textContent = t("sh_submit");
+  document.getElementById("sheet-cancel").textContent = t("sh_cancel");
+  const labels = t("form_fields");
+  const fc = document.getElementById("sheet-fields");
+  fc.innerHTML = "";
+  (FORM_FIELDS[type] || []).forEach(f => {
+    const lbl = labels[f] || f;
+    const g = document.createElement("div"); g.className = "field";
+    g.innerHTML = `<label class="flabel">${esc(lbl)}</label>
+      <input class="finput" id="f-${f}" type="text" placeholder="${esc(lbl)}" />`;
+    fc.appendChild(g);
+  });
+  document.getElementById("form-overlay").classList.add("open");
+}
+
+function overlayClick(e) { if (e.target === e.currentTarget) closeOverlay(); }
+function closeOverlay() {
+  document.getElementById("form-overlay").classList.remove("open");
+  curFormType = null;
+}
+
+async function submitForm() {
+  if (!curFormType) return;
+  const fields = FORM_FIELDS[curFormType] || [];
+  const vals = {}; let ok = true;
+  fields.forEach(f => {
+    const el = document.getElementById(`f-${f}`);
+    if (!el) return;
+    vals[f] = el.value.trim();
+    el.classList.toggle("err", !vals[f]);
+    if (!vals[f]) ok = false;
+  });
+  if (!ok) return;
+
+  const btn = document.getElementById("sheet-submit");
+  btn.textContent = t("sh_working"); btn.disabled = true;
+  try {
+    const r = await fetch("/forms/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ form_type: curFormType, fields: vals }),
+    });
+    if (!r.ok) throw new Error("Generation failed");
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `${curFormType}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+    closeOverlay();
+  } catch {
+    btn.textContent = t("sh_submit");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t("sh_submit");
+  }
+}
+
+// ================================================================
+// HELP / CLINICS
+// ================================================================
+async function loadHelp() {
+  if (helpMapLoaded) return;
+  helpMapLoaded = true;
+  try {
+    const r = await fetch("/clinics?limit=7");
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    renderClinics(d.clinics || []);
+  } catch {
+    document.getElementById("clinics-list").innerHTML =
+      `<p style="color:var(--ink-3);text-align:center;padding:20px">تعذر تحميل المراكز</p>`;
+  }
+}
+
+function initMap(clinics) {
+  if (helpMap) return;
+  helpMap   = L.map("help-map", { scrollWheelZoom: false }).setView([31.9, 35.2], 8);
+  helpLayer = L.layerGroup().addTo(helpMap);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap", maxZoom: 18,
+  }).addTo(helpMap);
+
+  const pts = [];
+  clinics.forEach(c => {
+    if (!c.latitude || !c.longitude) return;
+    L.marker([c.latitude, c.longitude])
+      .bindPopup(`<strong>${esc(c.name)}</strong><br>${esc(c.city)} · ${esc(c.phone)}`)
+      .addTo(helpLayer);
+    pts.push([c.latitude, c.longitude]);
+  });
+  if (pts.length > 1) helpMap.fitBounds(pts, { padding: [16,16], maxZoom: 10 });
+}
+
+function renderClinics(clinics) {
+  initMap(clinics);
+  const c = document.getElementById("clinics-list");
+  c.innerHTML = "";
+  clinics.forEach(cl => {
+    const tags = (cl.specialties || []).map(s => `<span class="ctag">${esc(s)}</span>`).join("");
+    const dist = cl.distance_km != null ? ` · ${cl.distance_km} km` : "";
+    const el = document.createElement("div");
+    el.className = "clinic-card";
+    el.innerHTML = `
+      <div class="clinic-name">${esc(cl.name)}</div>
+      <div class="clinic-meta">
+        <span>📍 ${esc(cl.city)}, ${esc(cl.region)}${dist}</span>
+        <span>✉ ${esc(cl.email)}</span>
+      </div>
+      <div class="clinic-tags">${tags}</div>
+      <div class="clinic-acts">
+        <button class="c-btn call" onclick="window.location='tel:${esc(cl.phone)}'">${t("btn_call")} ${esc(cl.phone)}</button>
+        <button class="c-btn dir"  onclick="window.open('https://maps.google.com/?q=${cl.latitude},${cl.longitude}','_blank')">${t("btn_dir")}</button>
+      </div>`;
+    c.appendChild(el);
+  });
+}
+
+function callAid() { window.location.href = "tel:+97022954646"; }
+
+// ================================================================
+// BOOT
+// ================================================================
+applyI18n();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+</script>
 </body>
 </html>
